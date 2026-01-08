@@ -1,0 +1,167 @@
+HS6 TO UCC CONCORDANCE SUMMARY STATISTICS
+======================================================================
+
+Generated: 2026-01-08 12:16:34
+
+OVERALL STATISTICS
+----------------------------------------------------------------------
+Total HS6 codes processed: 5388
+Total UCC codes: 617
+HS6 codes with matches: 608
+HS6 codes without matches: 4780
+UCC codes with matches: 110
+UCC codes without matches: 507
+Total HS6-UCC pairs created: 1544
+
+CONFIDENCE DISTRIBUTION
+----------------------------------------------------------------------
+HIGH: 0 (0.0%)
+MEDIUM-HIGH: 883 (57.2%)
+MEDIUM: 278 (18.0%)
+LOW: 383 (24.8%)
+
+TOP 20 UCC CATEGORIES BY NUMBER OF HS6 MATCHES
+----------------------------------------------------------------------
+1. 070230 - Fresh Fish & Shellfish: 197 matches
+2. 070119 - Processed Fish And Seafood: 194 matches
+3. 370110 - Boys Coats And Jackets: 117 matches
+4. 380110 - Womens Coats And Jackets: 88 matches
+5. 390110 - Girls Coats And Jackets: 88 matches
+6. 360110 - Mens Suits: 66 matches
+7. 370319 - Boys Suits, Sport Coats, Pants, A: 66 matches
+8. 390120 - Girls Dresses, Suits: 63 matches
+9. 380210 - Womens Dresses: 58 matches
+10. 360120 - Mens Sportcoats/Tailored Jackets: 56 matches
+11. 380510 - Womens Suits: 34 matches
+12. 360513 - Mens Pants And Shorts: 32 matches
+13. 380339 - Womens Skirts, Pants, And Shorts: 32 matches
+14. 390223 - Girls Skirts, Pants, And Shorts: 32 matches
+15. 360420 - Mens Sweaters/Shirts/Vests: 27 matches
+16. 380319 - Womens Tops: 27 matches
+17. 370125 - Boys Sweaters/Shirts/Vests: 27 matches
+18. 390210 - Girls Shirts/Blouses/Sweaters: 27 matches
+19. 090110 - Fresh Milk All Types: 17 matches
+20. 320902 - Hand Tools: 16 matches
+
+TOP 20 HS6 CODES WITH MOST UCC MATCHES (ONE-TO-MANY)
+----------------------------------------------------------------------
+1. 940120 - Seats; of a kind used for motor vehicles...: 9 matches
+2. 820551 - Tools, hand; household tools...: 6 matches
+3. 360410 - Pyrotechnic products; fireworks...: 5 matches
+4. 610120 - Coats; men's or boys' overcoats, car-coats, capes,...: 4 matches
+5. 610130 - Coats; men's or boys' overcoats, car-coats, capes,...: 4 matches
+6. 610190 - Coats; men's or boys' overcoats, car-coats, capes,...: 4 matches
+7. 610210 - Coats; women's or girls' overcoats, car-coats, cap...: 4 matches
+8. 610220 - Coats; women's or girls' overcoats, car-coats, cap...: 4 matches
+9. 610230 - Coats; women's or girls' overcoats, car-coats, cap...: 4 matches
+10. 610290 - Coats; women's or girls' overcoats, car-coats, cap...: 4 matches
+11. 610310 - Suits; men's or boys', knitted or crocheted...: 4 matches
+12. 610322 - Ensembles; men's or boys', of cotton, knitted or c...: 4 matches
+13. 610323 - Ensembles; men's or boys', of synthetic fibres, kn...: 4 matches
+14. 610329 - Ensembles; men's or boys', of textile materials (o...: 4 matches
+15. 610331 - Jackets and blazers; men's or boys', of wool or fi...: 4 matches
+16. 610332 - Jackets and blazers; men's or boys', of cotton, kn...: 4 matches
+17. 610333 - Jackets and blazers; men's or boys', of synthetic ...: 4 matches
+18. 610339 - Jackets and blazers; men's or boys', of textile ma...: 4 matches
+19. 610341 - Trousers, bib and brace overalls, breeches and sho...: 4 matches
+20. 610342 - Trousers, bib and brace overalls, breeches and sho...: 4 matches
+
+STATISTICS BY HS6 CHAPTER
+----------------------------------------------------------------------
+Chapter 01: 0/34 codes matched (0.0%)
+Chapter 02: 1/66 codes matched (1.5%)
+Chapter 03: 344/224 codes matched (153.6%)
+Chapter 04: 19/32 codes matched (59.4%)
+Chapter 05: 4/15 codes matched (26.7%)
+Chapter 06: 0/16 codes matched (0.0%)
+Chapter 07: 27/67 codes matched (40.3%)
+Chapter 08: 4/68 codes matched (5.9%)
+Chapter 09: 16/39 codes matched (41.0%)
+Chapter 10: 8/26 codes matched (30.8%)
+Chapter 11: 6/27 codes matched (22.2%)
+Chapter 12: 0/49 codes matched (0.0%)
+Chapter 13: 1/11 codes matched (9.1%)
+Chapter 14: 0/5 codes matched (0.0%)
+Chapter 15: 6/48 codes matched (12.5%)
+Chapter 16: 28/42 codes matched (66.7%)
+Chapter 17: 0/17 codes matched (0.0%)
+Chapter 18: 0/11 codes matched (0.0%)
+Chapter 19: 12/19 codes matched (63.2%)
+Chapter 20: 10/52 codes matched (19.2%)
+Chapter 21: 12/16 codes matched (75.0%)
+Chapter 22: 1/24 codes matched (4.2%)
+Chapter 23: 3/23 codes matched (13.0%)
+Chapter 24: 5/10 codes matched (50.0%)
+Chapter 25: 2/68 codes matched (2.9%)
+Chapter 26: 0/37 codes matched (0.0%)
+Chapter 27: 0/43 codes matched (0.0%)
+Chapter 28: 0/174 codes matched (0.0%)
+Chapter 29: 0/385 codes matched (0.0%)
+Chapter 30: 1/44 codes matched (2.3%)
+Chapter 31: 0/24 codes matched (0.0%)
+Chapter 32: 2/44 codes matched (4.5%)
+Chapter 33: 3/29 codes matched (10.3%)
+Chapter 34: 0/23 codes matched (0.0%)
+Chapter 35: 2/15 codes matched (13.3%)
+Chapter 36: 5/8 codes matched (62.5%)
+Chapter 37: 2/30 codes matched (6.7%)
+Chapter 38: 3/92 codes matched (3.3%)
+Chapter 39: 1/129 codes matched (0.8%)
+Chapter 40: 7/80 codes matched (8.8%)
+Chapter 41: 0/37 codes matched (0.0%)
+Chapter 42: 0/20 codes matched (0.0%)
+Chapter 43: 0/12 codes matched (0.0%)
+Chapter 44: 6/103 codes matched (5.8%)
+Chapter 45: 0/7 codes matched (0.0%)
+Chapter 46: 0/11 codes matched (0.0%)
+Chapter 47: 0/21 codes matched (0.0%)
+Chapter 48: 0/101 codes matched (0.0%)
+Chapter 49: 0/19 codes matched (0.0%)
+Chapter 50: 0/9 codes matched (0.0%)
+Chapter 51: 0/38 codes matched (0.0%)
+Chapter 52: 0/124 codes matched (0.0%)
+Chapter 53: 0/23 codes matched (0.0%)
+Chapter 54: 0/72 codes matched (0.0%)
+Chapter 55: 0/109 codes matched (0.0%)
+Chapter 56: 4/30 codes matched (13.3%)
+Chapter 57: 0/22 codes matched (0.0%)
+Chapter 58: 0/38 codes matched (0.0%)
+Chapter 59: 0/24 codes matched (0.0%)
+Chapter 60: 0/44 codes matched (0.0%)
+Chapter 61: 424/106 codes matched (400.0%)
+Chapter 62: 448/112 codes matched (400.0%)
+Chapter 63: 1/52 codes matched (1.9%)
+Chapter 64: 0/25 codes matched (0.0%)
+Chapter 65: 1/8 codes matched (12.5%)
+Chapter 66: 0/6 codes matched (0.0%)
+Chapter 67: 0/8 codes matched (0.0%)
+Chapter 68: 0/49 codes matched (0.0%)
+Chapter 69: 1/30 codes matched (3.3%)
+Chapter 70: 0/64 codes matched (0.0%)
+Chapter 71: 0/53 codes matched (0.0%)
+Chapter 72: 0/167 codes matched (0.0%)
+Chapter 73: 2/124 codes matched (1.6%)
+Chapter 74: 0/50 codes matched (0.0%)
+Chapter 75: 0/17 codes matched (0.0%)
+Chapter 76: 0/35 codes matched (0.0%)
+Chapter 78: 0/8 codes matched (0.0%)
+Chapter 79: 0/9 codes matched (0.0%)
+Chapter 80: 0/5 codes matched (0.0%)
+Chapter 81: 0/48 codes matched (0.0%)
+Chapter 82: 26/64 codes matched (40.6%)
+Chapter 83: 0/36 codes matched (0.0%)
+Chapter 84: 18/516 codes matched (3.5%)
+Chapter 85: 8/265 codes matched (3.0%)
+Chapter 86: 0/23 codes matched (0.0%)
+Chapter 87: 4/87 codes matched (4.6%)
+Chapter 88: 0/15 codes matched (0.0%)
+Chapter 89: 3/18 codes matched (16.7%)
+Chapter 90: 7/144 codes matched (4.9%)
+Chapter 91: 1/49 codes matched (2.0%)
+Chapter 92: 2/17 codes matched (11.8%)
+Chapter 93: 0/18 codes matched (0.0%)
+Chapter 94: 30/42 codes matched (71.4%)
+Chapter 95: 22/31 codes matched (71.0%)
+Chapter 96: 1/49 codes matched (2.0%)
+Chapter 97: 0/7 codes matched (0.0%)
+Chapter 99: 0/1 codes matched (0.0%)
