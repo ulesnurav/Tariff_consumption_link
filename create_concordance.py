@@ -53,7 +53,8 @@ SEMANTIC_MAPPINGS = {
     'apples': ['apples'],
     'bananas': ['bananas'],
     'grapes': ['grapes'],
-    'berry': ['berries', 'strawberries'],
+    'strawberries': ['strawberries'],
+    'berries': ['berries'],
     'melon': ['melons'],
     
     # Vegetables
