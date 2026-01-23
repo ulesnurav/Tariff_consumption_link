@@ -1,0 +1,52 @@
+
+HS6-TO-UCC CONCORDANCE STATISTICS
+===================================
+
+Generated: 2026-01-23
+
+INPUT DATA
+----------
+Total HS6 codes:                5,388
+Total UCC codes:                681
+UCC goods codes (non-service):  475
+
+MATCHING RESULTS
+----------------
+Total HS6-UCC pairs:            49,263
+
+HS6 Coverage:
+  Codes matched:                4,228 (78.5%)
+  Codes unmatched:              1,160 (21.5%)
+
+UCC Coverage:
+  Goods codes matched:          323 (68.0%)
+  Goods codes unmatched:        152 (32.0%)
+
+CONFIDENCE LEVEL DISTRIBUTION
+------------------------------
+HIGH:                           4,798 pairs (9.7%)
+MEDIUM:                         34,978 pairs (71.0%)
+LOW:                            9,487 pairs (19.3%)
+
+MATCH METHOD DISTRIBUTION
+--------------------------
+Exact keyword:                  3,430 pairs
+Semantic category:              37,790 pairs
+Semantic similarity:            8,043 pairs
+
+RELATIONSHIP ANALYSIS
+---------------------
+HS6 codes with 1 UCC:           268 (1:1)
+HS6 codes with multiple UCCs:   3,960 (1:many)
+UCC codes with multiple HS6s:   282 (many:1)
+
+Average UCCs per HS6:           11.65
+Average HS6s per UCC:           152.52
+
+SUCCESS CRITERIA
+----------------
+✓ UCC match rate >85%:          NO (68.0%)
+✓ HS6 coverage >90%:            NO (78.5%)
+✓ Balanced confidence:          YES
+✓ Transparency:                 YES (all matches documented)
+
