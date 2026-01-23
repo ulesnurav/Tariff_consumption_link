@@ -547,18 +547,20 @@ def create_concordance(hs6_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[List
                     'notes': match_quality['notes']
                 })
         
-        # Sort by score and limit to reasonable number per HS6
-        # Keep top matches but don't create thousands of low-value matches
+        # Sort by score and keep ONLY the best match(es) per HS6
+        # Goal: Many HS6 codes → 1 UCC code (many-to-one mapping)
         hs6_matches.sort(key=lambda x: x['score'], reverse=True)
         
-        # Limit matches based on confidence:
-        # - Keep all HIGH confidence matches
-        # - Keep top 15 MEDIUM confidence matches  
-        # - Keep top 8 LOW confidence matches
-        high_matches = [m for m in hs6_matches if m['confidence'] == 'HIGH']
-        medium_matches = [m for m in hs6_matches if m['confidence'] == 'MEDIUM'][:15]
-        low_matches = [m for m in hs6_matches if m['confidence'] == 'LOW'][:8]
-        hs6_matches = high_matches + medium_matches + low_matches
+        if hs6_matches:
+            # Keep only the top 1-2 matches per HS6
+            # If there are HIGH confidence matches, keep up to 2
+            # Otherwise keep only the single best match
+            high_matches = [m for m in hs6_matches if m['confidence'] == 'HIGH'][:2]
+            if high_matches:
+                hs6_matches = high_matches
+            else:
+                # Keep only the best match
+                hs6_matches = [hs6_matches[0]]
         
         for match in hs6_matches:
             matches.append({
@@ -715,14 +717,14 @@ Exact keyword:                  {method_dist['exact_keyword']:,} pairs
 Semantic category:              {method_dist['semantic_category']:,} pairs
 Semantic similarity:            {method_dist['semantic_similarity']:,} pairs
 
-RELATIONSHIP ANALYSIS
----------------------
-HS6 codes with 1 UCC:           {one_to_one:,} (1:1)
-HS6 codes with multiple UCCs:   {one_to_many:,} (1:many)
-UCC codes with multiple HS6s:   {many_to_one_uccs:,} (many:1)
+RELATIONSHIP ANALYSIS (Many HS6 → 1 UCC)
+-----------------------------------------
+HS6 codes with 1 UCC:           {one_to_one:,} (1:1 - desired)
+HS6 codes with 2 UCCs:          {one_to_many:,} (1:2 - acceptable)
+UCC codes with multiple HS6s:   {many_to_one_uccs:,} (many:1 - desired)
 
-Average UCCs per HS6:           {avg_ucc_per_hs6:.2f}
-Average HS6s per UCC:           {avg_hs6_per_ucc:.2f}
+Average UCCs per HS6:           {avg_ucc_per_hs6:.2f} (target: ~1.0)
+Average HS6s per UCC:           {avg_hs6_per_ucc:.2f} (higher is better)
 
 SUCCESS CRITERIA
 ----------------
