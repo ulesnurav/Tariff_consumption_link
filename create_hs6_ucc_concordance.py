@@ -333,9 +333,18 @@ def direct_match_score(hs6_desc: str, ucc_desc: str) -> Tuple[float, str]:
             # Calculate overlap ratio
             overlap_ratio = len(substantial) / min(len(hs6_tokens), len(ucc_tokens))
             # Give bonus for multiple matches
-            if len(substantial) >= 2:
+            if len(substantial) >= 3:
+                overlap_ratio = min(1.0, overlap_ratio * 1.5)
+            elif len(substantial) >= 2:
                 overlap_ratio = min(1.0, overlap_ratio * 1.3)
             reasoning = f"exact_keyword: {', '.join(sorted(substantial)[:3])}"
+            return overlap_ratio, reasoning
+        
+        # Even short tokens might be meaningful if there are several
+        if len(common_tokens) >= 3:
+            overlap_ratio = len(common_tokens) / min(len(hs6_tokens), len(ucc_tokens))
+            overlap_ratio = min(0.6, overlap_ratio)  # Cap at 0.6 for short tokens
+            reasoning = f"exact_keyword: {', '.join(sorted(list(common_tokens))[:3])}"
             return overlap_ratio, reasoning
     
     return 0.0, ""
@@ -481,6 +490,16 @@ def create_concordance(hs6_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[List
     print(f"UCC goods codes (after filtering services): {len(ucc_goods_df):,}")
     print(f"UCC service codes (excluded): {len(ucc_excluded):,}\n")
     
+    # Pre-compute UCC categories for faster matching
+    print("Pre-computing UCC categories...")
+    ucc_categories_cache = {}
+    ucc_tokens_cache = {}
+    for _, ucc_row in ucc_goods_df.iterrows():
+        ucc_code = str(ucc_row['ucc_code'])
+        ucc_desc = str(ucc_row['description'])
+        ucc_categories_cache[ucc_code] = get_category(ucc_desc, PRODUCT_CATEGORIES)
+        ucc_tokens_cache[ucc_code] = tokenize(ucc_desc)
+    
     print("Processing HS6 codes...")
     
     # Track matches per UCC for statistics
@@ -494,12 +513,26 @@ def create_concordance(hs6_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[List
         hs6_code = str(hs6_row['Code'])
         hs6_desc = str(hs6_row['Description'])
         
+        # Pre-compute HS6 properties
+        hs6_categories = get_category(hs6_desc, PRODUCT_CATEGORIES)
+        hs6_tokens = tokenize(hs6_desc)
+        
         # Find all matching UCC codes
         hs6_matches = []
         
         for _, ucc_row in ucc_goods_df.iterrows():
             ucc_code = str(ucc_row['ucc_code'])
             ucc_desc = str(ucc_row['description'])
+            
+            # Quick category filter - skip if no category overlap and no tokens match
+            ucc_categories = ucc_categories_cache[ucc_code]
+            if hs6_categories and ucc_categories:
+                if not (set(hs6_categories) & set(ucc_categories)):
+                    # Different categories - check for token overlap before skipping
+                    ucc_tokens = ucc_tokens_cache[ucc_code]
+                    common = hs6_tokens & ucc_tokens
+                    if not common or len([t for t in common if len(t) > 3]) == 0:
+                        continue  # Skip - no overlap
             
             # Calculate match quality
             match_quality = calculate_match_quality(hs6_desc, ucc_desc)
@@ -543,6 +576,58 @@ def create_concordance(hs6_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[List
             ucc_match_counts[match['ucc_code']].append(hs6_code)
     
     print(f"  Processed {len(hs6_df)}/{len(hs6_df)} HS6 codes.\n")
+    
+    # Second pass: For unmatched UCCs, try broader matching
+    print("Second pass: Matching remaining UCCs with broader criteria...")
+    unmatched_uccs = set(str(row['ucc_code']) for _, row in ucc_goods_df.iterrows()) - matched_ucc_codes
+    
+    if unmatched_uccs:
+        print(f"  Attempting to match {len(unmatched_uccs)} unmatched UCCs...")
+        second_pass_matches = 0
+        
+        for ucc_code in unmatched_uccs:
+            ucc_row = ucc_goods_df[ucc_goods_df['ucc_code'] == ucc_code].iloc[0]
+            ucc_desc = str(ucc_row['description'])
+            ucc_categories = ucc_categories_cache[ucc_code]
+            
+            # Try to find HS6 codes in the same category
+            best_hs6_match = None
+            best_score = 0.20  # Lower threshold for second pass
+            
+            for _, hs6_row in hs6_df.iterrows():
+                hs6_code = str(hs6_row['Code'])
+                hs6_desc = str(hs6_row['Description'])
+                hs6_categories = get_category(hs6_desc, PRODUCT_CATEGORIES)
+                
+                # Same category match
+                if ucc_categories and hs6_categories:
+                    if set(ucc_categories) & set(hs6_categories):
+                        # Found a category match
+                        score = 0.30  # LOW confidence
+                        if score > best_score:
+                            best_score = score
+                            best_hs6_match = {
+                                'hs6_code': hs6_code,
+                                'hs6_desc': hs6_desc,
+                                'score': score,
+                                'reasoning': f"second_pass: same category {ucc_categories[0]}"
+                            }
+            
+            if best_hs6_match:
+                matches.append({
+                    'hs6': best_hs6_match['hs6_code'],
+                    'hs6_description': best_hs6_match['hs6_desc'],
+                    'ucc': ucc_code,
+                    'ucc_description': ucc_desc,
+                    'confidence': 'LOW',
+                    'confidence_score': int(best_hs6_match['score'] * 100),
+                    'match_method': 'semantic_category',
+                    'notes': best_hs6_match['reasoning']
+                })
+                matched_ucc_codes.add(ucc_code)
+                second_pass_matches += 1
+        
+        print(f"  Second pass matched {second_pass_matches} additional UCCs\n")
     
     print("="*70)
     print("MATCHING COMPLETE")
