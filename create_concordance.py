@@ -100,6 +100,59 @@ SEMANTIC_MAPPINGS = {
     'dress': ['dresses'],
     'coat': ['coats'],
     'jacket': ['jackets'],
+    
+    # Appliances (CRITICAL - currently missing!)
+    'washing machine': ['washer', 'laundry', 'clothes washer'],
+    'clothes washer': ['washer', 'clothes washer'],
+    'washer': ['washer', 'clothes washer'],
+    'dryer': ['dryer', 'clothes dryer'],
+    'clothes dryer': ['dryer', 'clothes dryer'],
+    'dishwasher': ['dishwasher'],
+    'refrigerator': ['refrigerator', 'fridge'],
+    'fridge': ['refrigerator', 'fridge'],
+    'freezer': ['freezer'],
+    'stove': ['stove', 'range', 'cooktop'],
+    'range': ['stove', 'range'],
+    'oven': ['oven'],
+    'microwave': ['microwave'],
+    'air conditioner': ['air conditioner', 'ac unit'],
+    'air conditioning': ['air conditioner', 'ac unit'],
+    
+    # Electronics & Energy
+    'photovoltaic': ['solar panel', 'solar'],
+    'solar cell': ['solar panel', 'solar'],
+    'solar': ['solar panel', 'solar'],
+    'inverter': ['inverter'],
+    'battery': ['battery', 'batteries'],
+    'batteries': ['battery', 'batteries'],
+    
+    # Furniture
+    'sofa': ['sofa', 'couch'],
+    'couch': ['sofa', 'couch'],
+    'settee': ['sofa', 'couch'],
+    'mattress': ['mattress', 'bed'],
+    'bed': ['mattress', 'bed'],
+    'chair': ['chair', 'chairs'],
+    'seat': ['chair', 'chairs'],
+    'table': ['table', 'tables'],
+    'desk': ['desk', 'desks'],
+    
+    # Processed foods (missing)
+    'sausage': ['frankfurter', 'hot dog', 'sausage'],
+    'frankfurter': ['frankfurter', 'hot dog'],
+    'hot dog': ['frankfurter', 'hot dog'],
+    'baked goods': ['cracker', 'cookie', 'biscuit'],
+    'cracker': ['cracker', 'crackers'],
+    'biscuit': ['cracker', 'biscuit'],
+    'pastry': ['pie', 'tart', 'turnover'],
+    'pie': ['pie', 'pies'],
+    'tart': ['tart', 'tarts'],
+    
+    # Flatware and tableware
+    'cutlery': ['flatware', 'cutlery'],
+    'flatware': ['flatware'],
+    'tableware': ['flatware', 'dishes', 'tableware'],
+    'silverware': ['flatware', 'silverware'],
 }
 
 # UCC categories to exclude (services, financial, etc.)
@@ -159,12 +212,25 @@ def is_excluded_ucc(ucc_desc: str) -> Tuple[bool, str]:
     """
     Check if UCC code should be excluded (services, financial, etc.).
     Returns (is_excluded, category_reason)
+    
+    IMPORTANT: Extracts main product description before parenthetical to avoid
+    false exclusions. For example:
+    - "REFRIGERATOR (RENTER)" → main_desc = "REFRIGERATOR" → KEEP (it's a refrigerator purchase)
+    - "RENT" → main_desc = "RENT" → EXCLUDE (it's rent payment)
+    - "CLOTHES WASHER (RENTER)" → main_desc = "CLOTHES WASHER" → KEEP (it's a washer purchase)
     """
     desc_norm = normalize_text(ucc_desc)
     
+    # Extract main product description before parenthetical
+    # This prevents false exclusions based on context suffixes like (RENTER), (OWNED HOME), etc.
+    main_desc = desc_norm.split('(')[0].strip()
+    
+    # Check each exclusion category against the main description only
     for category, keywords in EXCLUDED_UCC_CATEGORIES.items():
         for keyword in keywords:
-            if keyword.upper() in desc_norm:
+            keyword_upper = keyword.upper()
+            # Only exclude if keyword appears in main description, not in parenthetical context
+            if keyword_upper in main_desc:
                 return True, category
     
     return False, 'OTHER'
@@ -367,7 +433,10 @@ def create_concordance(hs10_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[Lis
     return matches, unmatched_hs10, matched_ucc_codes
 
 def identify_unmatched_ucc(ucc_df: pd.DataFrame, matched_ucc_codes: Set[str]) -> List[Dict]:
-    """Identify and categorize unmatched UCC codes."""
+    """Identify and categorize unmatched UCC codes.
+    
+    Uses main product description (before parenthetical) to avoid false categorizations.
+    """
     unmatched_ucc = []
     
     for _, row in ucc_df.iterrows():
