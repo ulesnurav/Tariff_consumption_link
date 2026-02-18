@@ -1,5 +1,5 @@
 ucc_code,ucc_description,category,reason
-002120,OTHER NONHEALTH INSURANCE,OTHER,No matching HS10 code found
+002120,OTHER NONHEALTH INSURANCE,FINANCIAL,Financial service - not a tradeable good
 005420,"FINANCE, LATE, INTEREST CHARGES FOR CREDIT CARDS",FINANCIAL,Financial service - not a tradeable good
 005520,"FINANCE, LATE, INTEREST CHARGES FOR STUDENT LOANS",FINANCIAL,Financial service - not a tradeable good
 005620,"FINANCE, LATE, INTEREST CHARGES FOR OTHER LOANS",FINANCIAL,Financial service - not a tradeable good
@@ -67,8 +67,8 @@ ucc_code,ucc_description,category,reason
 210310,HOUSING WHILE ATTENDING SCHOOL,HOUSING,Housing expense - not a tradeable good
 210901,GROUND RENT,HOUSING,Housing expense - not a tradeable good
 210902,GROUND RENT,HOUSING,Housing expense - not a tradeable good
-220121,HOMEOWNERS INSURANCE,OTHER,No matching HS10 code found
-220122,HOMEOWNERS INSURANCE,OTHER,No matching HS10 code found
+220121,HOMEOWNERS INSURANCE,FINANCIAL,Financial service - not a tradeable good
+220122,HOMEOWNERS INSURANCE,FINANCIAL,Financial service - not a tradeable good
 220211,PROPERTY TAXES,HOUSING,Housing expense - not a tradeable good
 220212,PROPERTY TAXES,HOUSING,Housing expense - not a tradeable good
 220311,MORTGAGE INTEREST,HOUSING,Housing expense - not a tradeable good
@@ -77,8 +77,6 @@ ucc_code,ucc_description,category,reason
 220314,"INTEREST PAID, HOME EQUITY LOAN",FINANCIAL,Financial service - not a tradeable good
 230112,PAINTING AND PAPERING,OTHER,No matching HS10 code found
 230113,PLUMBING AND WATER HEATING,OTHER,No matching HS10 code found
-230117,"DISHWASHERS (BUILT-IN), GARBAGE DISPOSALS, RANGE",OTHER,No matching HS10 code found
-230118,"DISHWASHERS (BUILT-IN), GARBAGE DISPOSALS, RANGE",OTHER,No matching HS10 code found
 230141,REPAIR OF BUILT-IN APPLIANCES,SERVICE,Service - not a tradeable good
 230142,REPAIR OF BUILT-IN APPLIANCES,SERVICE,Service - not a tradeable good
 230150,REPAIR OR MAINTENANCE SERVICES,SERVICE,Service - not a tradeable good
@@ -125,11 +123,9 @@ ucc_code,ucc_description,category,reason
 300111,"REFRIGERATORS, FREEZERS (RENTER)",HOUSING,Housing expense - not a tradeable good
 300112,"REFRIGERATORS, FREEZERS (OWNED HOME)",OTHER,No matching HS10 code found
 300216,CLOTHES WASHER OR DRYER (RENTER),HOUSING,Housing expense - not a tradeable good
-300217,CLOTHES WASHER OR DRYER (OWNED HOME),OTHER,No matching HS10 code found
 300311,"COOKING STOVES, OVENS (RENTER)",HOUSING,Housing expense - not a tradeable good
 300321,MICROWAVE OVENS (RENTER),HOUSING,Housing expense - not a tradeable good
 300331,PORTABLE DISHWASHER (RENTER),HOUSING,Housing expense - not a tradeable good
-300332,PORTABLE DISHWASHER (OWNED HOME),OTHER,No matching HS10 code found
 300411,WINDOW AIR CONDITIONERS (RENTER),HOUSING,Housing expense - not a tradeable good
 310140,TELEVISIONS,OTHER,No matching HS10 code found
 310240,"STREAMING, DOWNLOADING VIDEO (THRU Q20171)",OTHER,No matching HS10 code found
@@ -140,12 +136,10 @@ ucc_code,ucc_description,category,reason
 310334,SATELLITE DISHES,OTHER,No matching HS10 code found
 310350,"STREAMING, DOWNLOADING AUDIO",OTHER,No matching HS10 code found
 310400,"APPLICATIONS, GAMES, RINGTONES FOR HANDHELD DEVICES",OTHER,No matching HS10 code found
-320140,LAUNDRY AND CLEANING EQUIPMENT,SERVICE,Service - not a tradeable good
 320330,FLATWARE,OTHER,No matching HS10 code found
 320345,"DINNERWARE, GLASSWARE, SERVING PIECES",OTHER,No matching HS10 code found
 320370,NONELECTRIC COOKWARE,OTHER,No matching HS10 code found
 320430,OTHER HARDWARE,OTHER,No matching HS10 code found
-320511,ELECTRIC FLOOR CLEANING EQUIPMENT,SERVICE,Service - not a tradeable good
 320522,PORTABLE HEATING AND COOLING EQUIPMENT,OTHER,No matching HS10 code found
 320611,"MATERIAL FOR INSULATION, OTHER MAINTENANCE AND",SERVICE,Service - not a tradeable good
 320612,"MATERIAL FOR INSULATION, OTHER MAINTENANCE AND",SERVICE,Service - not a tradeable good
@@ -158,7 +152,6 @@ ucc_code,ucc_description,category,reason
 320633,MATERIALS FOR LANDSCAPING MAINTENANCE,SERVICE,Service - not a tradeable good
 320903,"INDOOR PLANTS, FRESH FLOWERS",OTHER,No matching HS10 code found
 320904,CLOSET AND STORAGE ITEMS,OTHER,No matching HS10 code found
-330210,OTHER LAUNDRY CLEANING PRODUCTS,SERVICE,Service - not a tradeable good
 330410,"STATIONERY, STATIONERY SUPPLIES, GIFTWRAP",OTHER,No matching HS10 code found
 330511,TERMITE/PEST CONTROL PRODUCTS,OTHER,No matching HS10 code found
 340110,POSTAGE,OTHER,No matching HS10 code found
@@ -186,7 +179,7 @@ ucc_code,ucc_description,category,reason
 340913,REPAIR OF MISCELLANEOUS HOUSEHOLD EQUIPMENT AND,SERVICE,Service - not a tradeable good
 340914,SERVICES FOR TERMITE/PEST CONTROL,SERVICE,Service - not a tradeable good
 340915,HOME SECURITY SYSTEM SERVICE FEE,SERVICE,Service - not a tradeable good
-350110,TENANT''S INSURANCE,OTHER,No matching HS10 code found
+350110,TENANT''S INSURANCE,FINANCIAL,Financial service - not a tradeable good
 360320,MEN''S NIGHTWEAR,OTHER,No matching HS10 code found
 360902,MEN''S COSTUMES,OTHER,No matching HS10 code found
 370212,BOYS'' NIGHTWEAR,OTHER,No matching HS10 code found
@@ -226,11 +219,11 @@ ucc_code,ucc_description,category,reason
 490316,"GAS TANK REPAIR, REPLACEMENT",SERVICE,Service - not a tradeable good
 490318,REPAIR TIRES AND OTHER REPAIR WORK,SERVICE,Service - not a tradeable good
 490900,AUTO REPAIR SERVICE POLICY,SERVICE,Service - not a tradeable good
+500110,VEHICLE INSURANCE,FINANCIAL,Financial service - not a tradeable good
 510110,AUTOMOBILE FINANCE CHARGES,FINANCIAL,Financial service - not a tradeable good
 510901,TRUCK FINANCE CHARGES,FINANCIAL,Financial service - not a tradeable good
 510902,MOTORCYCLE AND PLANE FINANCE CHARGES,FINANCIAL,Financial service - not a tradeable good
 520110,VEHICLE REGISTRATION STATE/LOCAL,OTHER,No matching HS10 code found
-520410,VEHICLE INSPECTION,OTHER,No matching HS10 code found
 520516,AUTO/TRUCK RENTAL,HOUSING,Housing expense - not a tradeable good
 520517,"AUTO/TRUCK RENTAL, OUT-OF-TOWN TRIPS",HOUSING,Housing expense - not a tradeable good
 520531,"PARKING FEES IN HOME CITY, EXCLUDING RESIDENCE",SERVICE,Service - not a tradeable good
@@ -275,8 +268,8 @@ ucc_code,ucc_description,category,reason
 580402,LONG TERM CARE INSURANCE (BCBS) (NEW UCC Q20172),SERVICE,Service - not a tradeable good
 580411,DENTAL CARE INSURANCE (NOT BCBS) (NEW UCC Q20172),SERVICE,Service - not a tradeable good
 580412,DENTAL CARE INSURANCE (BCBS) (NEW UCC Q20172),SERVICE,Service - not a tradeable good
-580421,PRESCRIPTION DRUG INSURANCE (NOT BCBS) (NEW UCC,OTHER,No matching HS10 code found
-580422,PRESCRIPTION DRUG INSURANCE (BCBS) (NEW UCC Q20172),OTHER,No matching HS10 code found
+580421,PRESCRIPTION DRUG INSURANCE (NOT BCBS) (NEW UCC,FINANCIAL,Financial service - not a tradeable good
+580422,PRESCRIPTION DRUG INSURANCE (BCBS) (NEW UCC Q20172),FINANCIAL,Financial service - not a tradeable good
 580431,VISION CARE INSURANCE (NOT BCBS) (NEW UCC Q20172),SERVICE,Service - not a tradeable good
 580432,VISION CARE INSURANCE (BCBS) (NEW UCC Q20172),SERVICE,Service - not a tradeable good
 580441,OTHER SINGLE SERVICE INSURANCE (NOT BCBS),SERVICE,Service - not a tradeable good
@@ -284,8 +277,8 @@ ucc_code,ucc_description,category,reason
 580901,MEDICARE PAYMENTS,SERVICE,Service - not a tradeable good
 580903,COMMERCIAL MEDICARE SUPPLEMENT (NOT BCBS),SERVICE,Service - not a tradeable good
 580904,COMMERCIAL MEDICARE SUPPLEMENT (BCBS),SERVICE,Service - not a tradeable good
-580905,OTHER HEALTH INSURANCE (NOT BCBS) (THRU Q20171),OTHER,No matching HS10 code found
-580906,OTHER HEALTH INSURANCE (BCBS) (THRU Q20171),OTHER,No matching HS10 code found
+580905,OTHER HEALTH INSURANCE (NOT BCBS) (THRU Q20171),FINANCIAL,Financial service - not a tradeable good
+580906,OTHER HEALTH INSURANCE (BCBS) (THRU Q20171),FINANCIAL,Financial service - not a tradeable good
 580907,MEDICARE PRESCRIPTION DRUG PREMIUM,SERVICE,Service - not a tradeable good
 580908,MEDICAID PREMIUMS (NEW UCC Q20172),FINANCIAL,Financial service - not a tradeable good
 580909,TRICARE/MILITARY PREMIUMS (NEW UCC Q20172),SERVICE,Service - not a tradeable good
@@ -374,7 +367,7 @@ ucc_code,ucc_description,category,reason
 690330,INSTALLATION OF SATELLITE TELEVISION EQUIPMENT,SERVICE,Service - not a tradeable good
 690340,INSTALLATION OF SOUND SYSTEMS,SERVICE,Service - not a tradeable good
 690350,INSTALLATION OF OTHER VIDEO EQUIPMENT OR SOUND SYSTEMS,SERVICE,Service - not a tradeable good
-700110,"LIFE, ENDOWMENT, ANNUITY, OTHER PERSONAL INSURANCE",OTHER,No matching HS10 code found
+700110,"LIFE, ENDOWMENT, ANNUITY, OTHER PERSONAL INSURANCE",FINANCIAL,Financial service - not a tradeable good
 790430,SCHOOL LUNCHES,PREPARED_FOOD,Prepared food service - not importable goods
 800111,ALIMONY EXPENDITURES,OTHER,No matching HS10 code found
 800121,CHILD SUPPORT EXPENDITURES,OTHER,No matching HS10 code found

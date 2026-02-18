@@ -8,29 +8,29 @@ Total UCC codes: 681
 
 MATCHING RESULTS
 ----------------
-HS10 codes matched: 21,161 (90.2%)
-HS10 codes unmatched: 2,311 (9.8%)
+HS10 codes matched: 21,195 (90.3%)
+HS10 codes unmatched: 2,277 (9.7%)
 
-UCC codes matched: 281 (41.3%)
-UCC codes unmatched: 400 (58.7%)
+UCC codes matched: 288 (42.3%)
+UCC codes unmatched: 393 (57.7%)
 
 UNMATCHED UCC BREAKDOWN BY CATEGORY
 ------------------------------------
-SERVICE: 131 (32.8%)
-HOUSING: 59 (14.8%)
-FINANCIAL: 15 (3.8%)
-PREPARED_FOOD: 13 (3.2%)
-OTHER: 182 (45.5%)
+SERVICE: 128 (32.6%)
+HOUSING: 59 (15.0%)
+FINANCIAL: 25 (6.4%)
+PREPARED_FOOD: 13 (3.3%)
+OTHER: 168 (42.7%)
 
 CONCORDANCE STATISTICS
 ----------------------
-Total matches created: 25,060
+Total matches created: 25,871
 
 Matches by confidence level:
   HIGH: 14 (0.1%)
-  MEDIUM-HIGH: 20,878 (83.3%)
-  MEDIUM: 1,623 (6.5%)
-  LOW: 2,545 (10.2%)
+  MEDIUM-HIGH: 21,680 (83.8%)
+  MEDIUM: 1,626 (6.3%)
+  LOW: 2,551 (9.9%)
 
-Average matches per HS10 code: 1.18
+Average matches per HS10 code: 1.22
 Demographic splits (apparel/footwear): 12,380 matches

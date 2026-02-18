@@ -62,23 +62,40 @@ class SemanticMatcher:
             'sugar': ['sugar', 'sweetener', 'honey', 'syrup']
         }
         
+        # Household appliance categories
+        self.appliance_categories = {
+            'dishwasher': ['dishwashing', 'dishwasher machine', 'dish-washing'],
+            'washing_machine': ['washing machine', 'clothes washer', 'laundry machine', 
+                               'clothes dryer', 'washer dryer'],
+            'floor_cleaning': ['vacuum', 'floor cleaning equipment']
+        }
+        
+        # Cleaning product categories
+        self.cleaning_categories = {
+            'soap_detergent': ['soap', 'detergent', 'washing preparation', 
+                              'cleaning preparation', 'surface-active'],
+            'laundry_products': ['laundry', 'fabric softener', 'bleach'],
+            'paper_products': ['paper towel', 'tissue', 'napkin', 'toilet tissue']
+        }
+        
         # Service keywords (these UCCs won't match HS10)
         self.service_keywords = [
             'service', 'repair', 'maintenance', 'visit', 'care', 'fee',
-            'professional', 'labor', 'installation', 'cleaning', 'laundry',
-            'dry cleaning', 'alteration', 'consultation'
+            'professional', 'labor', 'installation', 'alteration', 'consultation',
+            'coin-operated', 'sent out'  # Laundry/cleaning services
         ]
         
         # Housing keywords (these UCCs won't match HS10)
         self.housing_keywords = [
             'rent', 'rental', 'mortgage', 'property tax', 'property insurance',
-            'lodging', 'hotel', 'motel', 'dwelling', 'shelter', 'housing'
+            'lodging', 'hotel', 'motel', 'dwelling', 'shelter', 'housing',
+            '(renter)', '(rented'  # Rental-specific products
         ]
         
         # Financial keywords (these UCCs won't match HS10)
         self.financial_keywords = [
-            'interest', 'bank', 'finance charge', 'premium', 'fee',
-            'checking', 'savings', 'credit card', 'loan'
+            'interest', 'bank', 'finance charge', 'premium', 
+            'checking', 'savings', 'credit card', 'loan', 'insurance'
         ]
         
         # Prepared food keywords (these UCCs won't match HS10)
@@ -283,7 +300,33 @@ class SemanticMatcher:
         hs10_lower = hs10_desc.lower()
         ucc_lower = ucc_desc.lower()
         
+        # Check food categories
         for category, terms in self.food_categories.items():
+            hs10_match = any(term in hs10_lower for term in terms)
+            ucc_match = any(term in ucc_lower for term in terms)
+            
+            if hs10_match and ucc_match:
+                return category
+        
+        # Check appliance categories with more specificity
+        for category, terms in self.appliance_categories.items():
+            # For appliances, require exact phrase matches to avoid false positives
+            # (e.g., "washers" in gaskets vs "washing machine")
+            hs10_match = any(term in hs10_lower for term in terms)
+            ucc_match = any(term in ucc_lower for term in terms)
+            
+            # Additional check: if it's dishwasher/washing_machine category,
+            # ensure HS10 actually refers to the machine, not just any "washer"
+            if category in ['dishwasher', 'washing_machine']:
+                # HS10 must have "machine" or specific appliance terms
+                if hs10_match and ucc_match:
+                    if 'machine' in hs10_lower or 'dishwashing' in hs10_lower:
+                        return category
+            elif hs10_match and ucc_match:
+                return category
+        
+        # Check cleaning product categories
+        for category, terms in self.cleaning_categories.items():
             hs10_match = any(term in hs10_lower for term in terms)
             ucc_match = any(term in ucc_lower for term in terms)
             
