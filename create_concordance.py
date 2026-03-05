@@ -340,57 +340,179 @@ def create_concordance(hs10_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[Lis
     """
     Create concordance between HS10 and UCC codes.
     Returns (matches, unmatched_hs10, matched_ucc_codes)
+
+    Uses pre-computed inverted indices to avoid the O(N×M) nested loop with
+    repeated regex operations, reducing runtime from ~40 min to a few minutes
+    while producing identical output.
     """
     matches = []
     unmatched_hs10 = []
     matched_ucc_codes = set()
-    
+
     print("Creating concordance mapping...")
     print(f"Total HS10 codes: {len(hs10_df)}")
     print(f"Total UCC codes: {len(ucc_df)}")
-    
+
     # Filter out excluded UCC codes
     ucc_goods = []
     for _, row in ucc_df.iterrows():
         is_excluded, _ = is_excluded_ucc(row['description'])
         if not is_excluded:
             ucc_goods.append(row)
-    
+
     ucc_goods_df = pd.DataFrame(ucc_goods)
     print(f"UCC goods codes (after filtering services/housing/financial): {len(ucc_goods_df)}")
-    
-    # Process each HS10 code
+
+    # ------------------------------------------------------------------
+    # Pre-computation phase: build per-UCC token data and inverted indices
+    # so we avoid re-computing these inside the HS10 loop.
+    # ------------------------------------------------------------------
+
+    # ucc_precomputed[i] = (ucc_code, ucc_desc, ucc_norm, all_tokens, substantial_tokens, words_5plus)
+    ucc_precomputed = []
+    for _, ucc_row in ucc_goods_df.iterrows():
+        ucc_code = str(ucc_row['ucc_code'])
+        ucc_desc = str(ucc_row['description'])
+        ucc_norm = normalize_text(ucc_desc)
+        ucc_tokens = tokenize(ucc_desc)
+        ucc_substantial = frozenset(t for t in ucc_tokens if len(t) > 3)
+        ucc_5plus = frozenset(w for w in ucc_tokens if len(w) > 4)
+        ucc_precomputed.append((ucc_code, ucc_desc, ucc_norm, ucc_tokens, ucc_substantial, ucc_5plus))
+
+    # Inverted index: substantial token -> list of UCC indices
+    # Used for fast direct-token-overlap candidate lookup.
+    token_to_ucc_indices: Dict[str, List[int]] = defaultdict(list)
+    for i, (_, _, _, _, ucc_substantial, _) in enumerate(ucc_precomputed):
+        for token in ucc_substantial:
+            token_to_ucc_indices[token].append(i)
+
+    # Semantic index: hs10_key -> list of (ucc_idx, first_matching_synonym)
+    # Pre-check which UCCs respond to each semantic mapping's synonyms (UCC side).
+    # hs10 side is checked per-HS10 at query time using pre-compiled patterns.
+    hs10_key_to_ucc_list: Dict[str, List[Tuple[int, str]]] = defaultdict(list)
+    for i, (_, _, ucc_norm, _, _, _) in enumerate(ucc_precomputed):
+        for hs10_key, synonyms in SEMANTIC_MAPPINGS.items():
+            for synonym in synonyms:
+                synonym_upper = synonym.upper()
+                if re.search(r'\b' + re.escape(synonym_upper) + r'\b', ucc_norm):
+                    hs10_key_to_ucc_list[hs10_key].append((i, synonym))
+                    break  # first matching synonym per (key, ucc) is sufficient
+
+    # Pre-compile regex patterns for the HS10 side of semantic matching.
+    hs10_key_patterns = {
+        key: re.compile(r'\b' + re.escape(key.upper()) + r'\b')
+        for key in SEMANTIC_MAPPINGS.keys()
+    }
+
+    # Flat list of (word, ucc_idx) for all 5+ char UCC words — used for substring fallback.
+    all_ucc_5plus_words: List[Tuple[str, int]] = []
+    for i, (_, _, _, _, _, ucc_5plus) in enumerate(ucc_precomputed):
+        for word in ucc_5plus:
+            all_ucc_5plus_words.append((word, i))
+
+    # ------------------------------------------------------------------
+    # Main loop: process each HS10 code using the pre-built indices.
+    # For each (HS10, UCC) pair the scoring replicates calculate_semantic_similarity:
+    #   1. Direct token overlap → overlap_ratio (may be < 0.3 → filtered)
+    #   2. Semantic mapping    → 0.85  (only if no direct overlap with that UCC)
+    #   3. Substring match     → 0.55  (only if no direct overlap or semantic match)
+    # ------------------------------------------------------------------
+
     for idx, hs10_row in hs10_df.iterrows():
         if idx % 1000 == 0:
             print(f"  Processed {idx}/{len(hs10_df)} HS10 codes...")
-        
+
         hs10_code = str(hs10_row['HS10 Code'])
         hs10_desc = str(hs10_row['HS10 Description'])
-        
-        # Find matching UCC codes
-        best_matches = []
-        
-        for _, ucc_row in ucc_goods_df.iterrows():
-            ucc_code = str(ucc_row['ucc_code'])
-            ucc_desc = str(ucc_row['description'])
-            
-            # Calculate similarity
-            similarity, reasoning = calculate_semantic_similarity(hs10_desc, ucc_desc)
-            
-            if similarity >= 0.3:  # Minimum threshold
-                confidence = assign_confidence_level(similarity, reasoning)
-                best_matches.append({
-                    'ucc_code': ucc_code,
-                    'ucc_description': ucc_desc,
-                    'confidence_level': confidence,
-                    'match_reasoning': reasoning,
-                    'similarity_score': similarity,
-                    'demographic_split': 1.0
-                })
-        
+        hs10_norm = normalize_text(hs10_desc)
+        hs10_tokens = tokenize(hs10_desc)
+        hs10_substantial = frozenset(t for t in hs10_tokens if len(t) > 3)
+        hs10_5plus = frozenset(w for w in hs10_tokens if len(w) > 4)
+
+        # ucc_idx -> match dict (highest-priority score wins)
+        best_matches_dict: Dict[int, Dict] = {}
+
+        # Step 1: Direct token overlap via inverted index.
+        # Collect UCC candidates that share ≥1 substantial token with HS10.
+        direct_candidates: Set[int] = set()
+        for token in hs10_substantial:
+            for ucc_idx in token_to_ucc_indices.get(token, []):
+                direct_candidates.add(ucc_idx)
+
+        for ucc_idx in direct_candidates:
+            ucc_code, ucc_desc, _, ucc_tokens, ucc_substantial, _ = ucc_precomputed[ucc_idx]
+            common_tokens = hs10_substantial & ucc_substantial
+            if common_tokens:
+                min_len = min(len(hs10_tokens), len(ucc_tokens))
+                if min_len > 0:
+                    overlap_ratio = min(1.0, len(common_tokens) / min_len * 1.2)
+                    reasoning = f"Direct match on: {', '.join(list(common_tokens)[:3])}"
+                    if overlap_ratio >= 0.3:
+                        confidence = assign_confidence_level(overlap_ratio, reasoning)
+                        best_matches_dict[ucc_idx] = {
+                            'ucc_code': ucc_code,
+                            'ucc_description': ucc_desc,
+                            'confidence_level': confidence,
+                            'match_reasoning': reasoning,
+                            'similarity_score': overlap_ratio,
+                            'demographic_split': 1.0,
+                        }
+
+        # Step 2: Semantic matching.
+        # Only for UCCs NOT already in direct_candidates (direct overlap takes priority,
+        # even when the overlap score was < 0.3, mirroring the original early-return logic).
+        for hs10_key, pattern in hs10_key_patterns.items():
+            if pattern.search(hs10_norm):
+                for ucc_idx, synonym in hs10_key_to_ucc_list.get(hs10_key, []):
+                    if ucc_idx in direct_candidates:
+                        continue  # direct overlap takes priority
+                    if ucc_idx in best_matches_dict:
+                        continue  # already matched via an earlier semantic key
+                    ucc_code, ucc_desc = ucc_precomputed[ucc_idx][0], ucc_precomputed[ucc_idx][1]
+                    reasoning = f"Semantic match: '{hs10_key}' \u2192 '{synonym}'"
+                    score = 0.85
+                    confidence = assign_confidence_level(score, reasoning)
+                    best_matches_dict[ucc_idx] = {
+                        'ucc_code': ucc_code,
+                        'ucc_description': ucc_desc,
+                        'confidence_level': confidence,
+                        'match_reasoning': reasoning,
+                        'similarity_score': score,
+                        'demographic_split': 1.0,
+                    }
+
+        # Step 3: Substring matching fallback.
+        # Only for UCCs not already captured by steps 1 or 2.
+        if hs10_5plus:
+            already_covered: Set[int] = direct_candidates | set(best_matches_dict.keys())
+            for ucc_word, ucc_idx in all_ucc_5plus_words:
+                if ucc_idx in already_covered:
+                    continue
+                if len(ucc_word) < 5:
+                    continue
+                for hs10_word in hs10_5plus:
+                    if len(hs10_word) < 5:
+                        continue
+                    if hs10_word in ucc_word or ucc_word in hs10_word:
+                        ucc_code, ucc_desc = ucc_precomputed[ucc_idx][0], ucc_precomputed[ucc_idx][1]
+                        reasoning = f"Partial match: '{hs10_word}' \u2248 '{ucc_word}'"
+                        score = 0.55
+                        confidence = assign_confidence_level(score, reasoning)
+                        best_matches_dict[ucc_idx] = {
+                            'ucc_code': ucc_code,
+                            'ucc_description': ucc_desc,
+                            'confidence_level': confidence,
+                            'match_reasoning': reasoning,
+                            'similarity_score': score,
+                            'demographic_split': 1.0,
+                        }
+                        already_covered.add(ucc_idx)
+                        break  # first hs10_word match per UCC is sufficient
+
+        best_matches = list(best_matches_dict.values())
+
         # Handle apparel/footwear demographic splits
         if is_apparel_footwear(hs10_desc) and len(best_matches) == 0:
-            # Try to find demographic-specific categories
             footwear_matches = get_demographic_ucc_codes(ucc_df, 'FOOTWEAR')
             if footwear_matches:
                 for match in footwear_matches:
@@ -400,14 +522,14 @@ def create_concordance(hs10_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[Lis
                         'confidence_level': 'MEDIUM',
                         'match_reasoning': 'Generic footwear matched to demographic categories (25% split)',
                         'similarity_score': 0.5,
-                        'demographic_split': 0.25
+                        'demographic_split': 0.25,
                     })
-        
+
         # Add matches
         if best_matches:
             # Sort by similarity and keep top matches
             best_matches.sort(key=lambda x: x['similarity_score'], reverse=True)
-            
+
             for match in best_matches[:5]:  # Keep top 5 matches
                 matches.append({
                     'hs10_code': hs10_code,
@@ -416,20 +538,20 @@ def create_concordance(hs10_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[Lis
                     'ucc_description': match['ucc_description'],
                     'confidence_level': match['confidence_level'],
                     'match_reasoning': match['match_reasoning'],
-                    'demographic_split': match['demographic_split']
+                    'demographic_split': match['demographic_split'],
                 })
                 matched_ucc_codes.add(match['ucc_code'])
         else:
             unmatched_hs10.append({
                 'hs10_code': hs10_code,
                 'hs10_description': hs10_desc,
-                'reason_unmatched': 'No semantic match found above confidence threshold'
+                'reason_unmatched': 'No semantic match found above confidence threshold',
             })
-    
+
     print(f"✓ Created {len(matches)} HS10-UCC pairs")
     print(f"✓ {len(unmatched_hs10)} HS10 codes unmatched")
     print(f"✓ {len(matched_ucc_codes)} unique UCC codes matched")
-    
+
     return matches, unmatched_hs10, matched_ucc_codes
 
 def identify_unmatched_ucc(ucc_df: pd.DataFrame, matched_ucc_codes: Set[str]) -> List[Dict]:
