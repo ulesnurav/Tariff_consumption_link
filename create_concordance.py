@@ -484,7 +484,7 @@ def create_concordance(hs10_df: pd.DataFrame, ucc_df: pd.DataFrame) -> Tuple[Lis
         # Step 3: Substring matching fallback.
         # Only for UCCs not already captured by steps 1 or 2.
         if hs10_5plus:
-            already_covered: Set[int] = direct_candidates | set(best_matches_dict.keys())
+            already_covered: Set[int] = direct_candidates | best_matches_dict.keys()
             for ucc_word, ucc_idx in all_ucc_5plus_words:
                 if ucc_idx in already_covered:
                     continue
