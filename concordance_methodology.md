@@ -3,135 +3,291 @@
 
 ## Overview
 
-This document describes the methodology used to create a comprehensive concordance between US Harmonized Tariff Schedule 10-digit codes (HS10) and Consumer Expenditure Survey Universal Classification Codes (UCC).
+This document describes the methodology used by `generate_concordance.py` to create a
+high-precision concordance between US Harmonized Tariff Schedule 10-digit codes (HS10)
+and Consumer Expenditure Survey Universal Classification Codes (UCC).
+
+The pipeline uses a **hybrid approach**:
+1. **Stage A — Candidate generation** (Python): fast lexical/synonym retrieval to shortlist
+   plausible UCC candidates per HS10 code
+2. **Stage B — GPT semantic judging** (optional): GPT reranks shortlisted candidates with
+   strict structured output (JSON schema) when `OPENAI_API_KEY` is set
+3. **Stage C — Hard post-validation** (Python): deterministic rules veto GPT approvals
+   for known error patterns and domain incompatibilities
 
 ## Data Sources
 
-1. **HS10 Codes**: `hs10_desc.xlsx` - Contains 23,472 US 10-digit HTS codes with descriptions
-2. **UCC Codes**: `ucc_codes_2017_2019_merged.csv` - Contains 681 UCC codes from the 2017-2019 Diary survey
+1. **HS10 Codes**: `hs10_desc.xlsx` — 23,472 US 10-digit HTS codes with descriptions
+2. **UCC Codes**: `ucc_codes_2017_2019_merged.csv` — 681 UCC codes from the 2017–2019
+   Diary survey
 
-**Important**: Both datasets preserve codes in string format to prevent loss of leading zeros.
+Both datasets load codes as strings to preserve leading zeros.
 
-## Matching Methodology
+---
 
-### 1. Semantic Text Matching
+## Stage A: Candidate Generation
 
-The concordance uses advanced semantic matching rather than simple keyword searches:
+### 1. Text normalisation and tokenisation
 
-- **Tokenization**: Descriptions are tokenized into meaningful words
-- **Direct Matching**: Exact word matches between HS10 and UCC descriptions
-- **Semantic Synonyms**: Product relationships are understood (e.g., "bovine" → "beef")
-- **Partial Matching**: Substring matches for compound terms
+Descriptions are normalised to uppercase, then tokenised on whitespace and punctuation.
+Tokens shorter than 3 characters are discarded.
 
-### 2. Confidence Level Assignment
+### 2. Generic-token exclusion (`GENERIC_TOKENS`)
 
-Each match is assigned a confidence level based on similarity scores:
+~70 high-frequency generic adjectives and administrative words are excluded from the anchor
+set and from candidate lookup. These cannot alone drive a match. Examples:
 
-- **HIGH** (≥0.8): Clear semantic match with strong token overlap
-- **MEDIUM-HIGH** (≥0.6): Strong match with moderate similarity
-- **MEDIUM** (≥0.4): Reasonable match with some uncertainty
-- **LOW** (<0.4): Possible match but significant uncertainty
+```
+FRESH, FROZEN, PROCESSED, LIVE, DRIED, SMOKED, SALTED, CANNED, WHOLE, GROUND,
+OTHER, SPECIFIED, UNSPECIFIED, MISC, NESOI, NEC, MISCELLANEOUS, GENERAL, VARIOUS,
+WEIGHING, CONTAINING, PRODUCTS, ITEMS, ARTICLES, PARTS, MATERIALS, FOOD,
+AND, OR, WITH, FOR, FROM, BY, OF, THE, NOT, WATER, ...
+```
 
-### 3. UCC Code Filtering
+**Rationale**: Previous matches like `COLD-WATER SHRIMPS` → `BOTTLED WATER`, or
+`AS SPECIFIED` → `UNSPECIFIED` were caused by these generic tokens.
 
-UCC codes are filtered to include only goods (exclude services):
+### 3. Anchor noun extraction
 
-**Excluded Categories**:
-- **SERVICE**: Repair services, medical care, childcare, education, etc.
-- **HOUSING**: Rent, mortgage interest, property taxes
-- **FINANCIAL**: Insurance premiums, finance charges, interest, bank fees
-- **PREPARED_FOOD**: Restaurant meals, catered food (not raw ingredients)
-- **UTILITY**: Electricity, gas, water, phone, internet services
+Tokens not in `GENERIC_TOKENS` become "anchor nouns". A match requires at least one
+anchor noun to overlap (directly or via synonym). No match is accepted on generic tokens
+alone.
 
-### 4. Apparel & Footwear Demographic Splits
+### 4. Semantic synonym expansion (`HS_TO_UCC_SYNONYMS`)
 
-Generic apparel/footwear items are matched to demographic-specific UCC codes:
+~200 domain-specific synonyms (bidirectional) expand anchor tokens before candidate
+retrieval. Examples:
 
-- Generic "FOOTWEAR" → MEN'S FOOTWEAR (25%) + WOMEN'S FOOTWEAR (25%) + BOYS' FOOTWEAR (25%) + GIRLS' FOOTWEAR (25%)
-- The `demographic_split` column indicates the proportion (0.25 for splits, 1.0 otherwise)
+| HS10 term | → UCC equivalent |
+|---|---|
+| `BOVINE` / `CATTLE` | `BEEF` |
+| `SWINE` | `PORK` |
+| `POULTRY` / `BROILER` / `FOWL` | `CHICKEN` |
+| `TROUSERS` / `SLACKS` | `PANTS` |
+| `SETTEE` / `DIVAN` | `SOFA` |
+| `MEDICAMENT` | `MEDICINE` |
+| `PERIODICAL` | `MAGAZINES` |
 
-**Rationale**: Consumer expenditure data is collected by demographic categories, so generic imports should be distributed across all demographics.
+Generic or ambiguous terms (e.g., `PLANT`, `STOCK`) are intentionally **excluded** from
+synonym maps to prevent cross-category false positives.
 
-### 5. Multiple Matches
+### 5. Whole-word-only matching
 
-One HS10 code can match multiple UCC codes when:
-- The HS10 product spans multiple consumer categories
-- Demographic splits are applied
-- Multiple confidence levels are warranted
+Tokenisation splits on word boundaries. Matching compares token sets (not substrings).
+This eliminates classic substring traps:
+
+| Bad pair | Root cause | Now |
+|---|---|---|
+| `HORSES AND ASSES` → `TOLL PASSES` | `ASSES` ⊂ `PASSES` | ✅ Rejected |
+| `IMMEDIATE SLAUGHTER` → `DIGITAL MEDIA PLAYERS` | `IMMEDIATE` ⊃ `MEDIA` | ✅ Rejected |
+| `LAYER-TYPE` hens → `AUDIO PLAYERS` | `LAYER` ⊂ `PLAYERS` | ✅ Rejected |
+| `AS SPECIFIED` → `UNSPECIFIED` | `SPECIFIED` ⊂ `UNSPECIFIED` | ✅ Rejected |
+
+### 6. Candidate retrieval
+
+Each HS10 code looks up its anchor tokens (including synonyms) in an inverted index over
+UCC anchor tokens. The top-`K` UCC codes by initial token overlap are taken as candidates
+(default `K=10`).
+
+---
+
+## Stage A/C: Scoring and Hard Filters
+
+### 7. Coverage-based scoring
+
+Each candidate pair receives a score in [0, 1]:
+
+```
+score = 0.65 × UCC_coverage + 0.35 × HS10_coverage + bigram_bonus
+```
+
+Where:
+- `UCC_coverage = |ucc_anchors ∩ hs10_expanded| / |ucc_anchors|`
+  (fraction of UCC anchor nouns explained by the HS10 product)
+- `HS10_coverage = |hs10_anchors ∩ ucc_expanded| / |hs10_anchors|`
+  (fraction of HS10 anchor nouns corroborated by the UCC description)
+- `bigram_bonus` = +0.10 per matching non-generic consecutive bigram (max 1.0 total)
+
+UCC coverage is weighted higher because the UCC description is the narrower, more
+specific label — if the UCC says "GROUND BEEF" every anchor noun must be satisfied.
+
+### 8. HS Chapter × UCC prefix compatibility (HARD REJECT)
+
+Each HS10 code belongs to one of 97 HS chapters (first 2 digits). Each UCC code has a
+2-digit prefix. The mapping `HS_CHAPTER_UCC_ALLOWED` defines which UCC prefixes are
+compatible with each HS chapter. If the chapter has a non-empty allowed set **and** the
+UCC prefix is not in it, the pair receives score = 0.0 (hard reject).
+
+Examples:
+| HS chapter | Product domain | Allowed UCC prefixes |
+|---|---|---|
+| 02 | Meat cuts | 03–07 (beef, pork, proc. meats, poultry, seafood) |
+| 50–67 | Textiles / apparel / footwear | 36–44 (apparel + footwear + accessories) |
+| 84–85 | Machinery / electronics | 30–31 (appliances, electronics) + vehicles + toys |
+| 87 | Motor vehicles | 45–49 (cars, trucks, fuel, tires, auto services) |
+| 86 | Railway equipment | NONE (not a consumer good) |
+
+This eliminates cross-domain false positives like:
+- Leather (ch.41) → `BEEF` UCC codes (prefix 03)
+- Machinery (ch.84) → `SUGAR` UCC code (prefix 15)
+- Railway cars (ch.86) → `NEW CARS` / `NEW TRUCKS` UCC codes
+
+### 9. Goods-only UCC filter
+
+Before candidate generation, UCC codes are classified using `classify_ucc()`. Codes
+matching any of ~50 exclusion phrases are removed from the candidate pool entirely:
+
+```
+INSURANCE, MORTGAGE, RENT, REPAIR SERVICE, HOSPITAL, PHYSICIAN,
+AT RESTAURANTS, AT FAST FOOD, CATERED AFFAIR, ELECTRICITY,
+INTERNET SERVICE, CABLE TV, LEGAL FEE, AT EMPLOYER, ...
+```
+
+This ensures financial, housing, utility, repair-service, and restaurant categories
+cannot appear in the concordance.
+
+### 10. Acceptance threshold
+
+Only pairs with `score ≥ 0.40` (default) are written to the concordance.
+
+---
+
+## Stage B: GPT Semantic Judging (Optional)
+
+When `OPENAI_API_KEY` is set, the top-K candidates per HS10 code (from Stage A) are
+submitted to GPT for semantic judgment using a strict prompt:
+
+**System prompt excerpt**:
+> You are an expert in US trade classification (HTS) and consumer expenditure surveys
+> (CEX). Judge whether an HS10 product description corresponds to a specific UCC consumer
+> expenditure category. Rules: UCC categories must represent physical consumer goods (not
+> services, financial products, utilities, or restaurant meals). The match must be based on
+> SPECIFIC product type, not generic modifiers. Reject if HS10 product is an industrial
+> input, raw material, or non-consumer good.
+
+**Required JSON output schema per candidate**:
+```json
+{
+  "ucc_code": "string",
+  "accept": true/false,
+  "confidence": "high|medium|low",
+  "reason": "string (one sentence explaining accept/reject)"
+}
+```
+
+GPT results override the deterministic score. Deterministic hard-reject rules (Stage C)
+still apply after GPT — GPT cannot approve a chapter-incompatible pair.
+
+---
+
+## Confidence Calibration
+
+| Level | Score range | Meaning |
+|---|---|---|
+| HIGH | ≥ 0.70 | UCC and HS10 strongly mutually covered; ready to use |
+| MEDIUM-HIGH | ≥ 0.55 | Good coverage; minor semantic ambiguity |
+| MEDIUM | ≥ 0.40 | Partial coverage; review before relying on in research |
+| LOW | < 0.40 | Rejected; not written to concordance |
+
+---
+
+## QA Checks and Audit Trail
+
+### Suspicious-match detection
+
+`flag_suspicious()` scans every accepted pair for known error patterns using regex:
+
+| Pattern | Label |
+|---|---|
+| `ASSES` ↔ `PASS` | substring trap: ASSES≈PASSES |
+| `IMMEDIATE` ↔ `MEDIA` | substring trap: IMMEDIATE≈MEDIA |
+| `LAYER` (standalone) ↔ `PLAYER` | substring trap: LAYER≈PLAYERS |
+| `SPECIFIED` ↔ `UNSPECIFIED` | substring trap: SPECIFIED≈UNSPECIFIED |
+| `BREAD` ↔ `SWEAT` | false match: SWEETBREADS vs BREAD |
+
+Flagged pairs are written to `suspicious_matches.csv` for manual review.
+
+### match_decisions.jsonl
+
+Every HS10 code produces a JSONL record with:
+- Input tokens and anchor nouns
+- Candidate UCC codes considered (with scores and reasons)
+- Final accept/reject decision
+- Whether GPT was used
+
+This enables full audit of any match or non-match decision.
+
+---
 
 ## Output Files
 
-### 1. Main Concordance (`hs10_to_ucc_concordance.csv`)
-Contains all HS10-UCC matches with confidence levels and reasoning.
+| File | Description |
+|---|---|
+| `hs10_to_ucc_concordance.csv` | Accepted HS10–UCC pairs with score, confidence, reason |
+| `unmatched_hs10_codes.csv` | HS10 codes with no accepted UCC match |
+| `unmatched_ucc_codes.csv` | UCC codes not matched to any HS10 (with category reason) |
+| `concordance_summary.txt` | Summary statistics (counts consistent with above files) |
+| `suspicious_matches.csv` | Flagged pairs for manual QA |
+| `match_decisions.jsonl` | Full per-HS10 audit trail |
 
-### 2. Unmatched HS10 Codes (`unmatched_hs10_codes.csv`)
-HS10 codes that could not be matched to any UCC code, with explanations.
+---
 
-### 3. Unmatched UCC Codes (`unmatched_ucc_codes.csv`)
-UCC codes without HS10 matches, categorized by reason (SERVICE, HOUSING, FINANCIAL, etc.).
+## Reproducibility Notes
 
-### 4. Summary Statistics (`concordance_summary.txt`)
-Aggregate statistics on matching results and distributions.
+- All outputs are **deterministic** given the same input files and Python environment
+  when GPT is disabled.
+- GPT mode introduces model non-determinism; set `temperature=0` in API calls for
+  maximum reproducibility (default in `generate_concordance.py`).
+- Re-running `generate_concordance.py` with the same inputs will produce identical
+  output files in deterministic mode.
+- The `match_decisions.jsonl` file captures every decision rationale.
 
-### 5. This Document (`concordance_methodology.md`)
-Detailed methodology and replication instructions.
+---
 
-### 6. Python Script (`create_concordance.py`)
-Fully executable script to replicate the concordance.
+## Known Limitations
 
-## Limitations and Assumptions
+1. **Negation context**: Phrases like `NOT FOR CIVIL AIRCRAFT` carry `AIRCRAFT` as a
+   token. GPT mode handles this; deterministic mode may link such HS10 codes to aircraft
+   UCC categories.
+2. **Ingredient ambiguity**: `CHEESE CONTAINING COW'S MILK` may match the `MILK` UCC
+   category in deterministic mode because `MILK` is a shared token.
+3. **Part-vs-whole**: HS10 "PARTS FOR X" codes may match the X consumer category.
+   Acceptable for trade-linkage analysis but note the semantic imprecision.
+4. **Industrial inputs**: ~77% of HS10 codes are industrial/non-consumer (chemicals,
+   metals, machinery, raw materials). These correctly appear in `unmatched_hs10_codes.csv`.
+5. **Precision over recall**: The 0.40 threshold prioritises avoiding false positives.
+   Lowering `--min-score` increases recall but may introduce cross-category matches.
 
-### Limitations
-1. **Semantic matching is heuristic**: Not perfect, some matches may be incorrect
-2. **Confidence levels are subjective**: Based on similarity thresholds
-3. **Coverage gaps**: Some HS10 products have no consumer expenditure equivalent
-4. **Granularity mismatch**: HS10 is very detailed (23K+ codes) while UCC is broader (681 codes)
+---
 
-### Assumptions
-1. **Demographic splits**: 25% equal distribution across demographics is assumed for generic apparel/footwear
-2. **Service exclusion**: All UCC service categories are excluded from matching
-3. **String format**: Codes are preserved as strings to maintain leading zeros
-4. **Minimum threshold**: Matches below 0.3 similarity score are excluded
+## Tuning Knobs
 
-## Quality Assurance
+| Parameter | Default | Effect |
+|---|---|---|
+| `--min-score` | 0.40 | Lower → more matches, less precision |
+| `--max-candidates` | 10 | Higher → more GPT calls, better recall |
+| `GENERIC_TOKENS` set | ~70 items | Add tokens to block spurious matches |
+| `HS_CHAPTER_UCC_ALLOWED` | per chapter | Widen sets to allow cross-domain matches |
+| `UCC_NONGOOD_PHRASES` | ~50 phrases | Add phrases to exclude more UCC service codes |
 
-The following quality checks are performed:
-- No duplicate HS10-UCC pairs (unless different confidence levels)
-- Demographic split values are validated
-- All codes remain in string format
-- Unmatched codes have explanations
-- Sample matches reviewed for semantic accuracy
+---
 
-## Replication Instructions
+## Dependencies
 
-To replicate this concordance:
+| Package | Version | Purpose |
+|---|---|---|
+| `pandas` | ≥ 1.3 | Data loading and CSV output |
+| `openpyxl` | ≥ 3.0 | Reading `.xlsx` input |
+| `openai` (optional) | ≥ 1.0 | GPT semantic judging |
 
-1. **Install dependencies**:
-   ```bash
-   pip install pandas openpyxl
-   ```
+Python 3.10+ required.
 
-2. **Ensure input files are present**:
-   - `hs10_desc.xlsx`
-   - `ucc_codes_2017_2019_merged.csv`
-
-3. **Run the script**:
-   ```bash
-   python create_concordance.py
-   ```
-
-4. **Verify outputs**:
-   - Check that all 6 output files are created
-   - Review sample matches in the concordance file
-   - Examine summary statistics
+---
 
 ## Version Information
 
-- **Script Version**: 1.0
-- **Generated**: 2026-01-10
-- **Python Version**: 3.x required
-- **Dependencies**: pandas, openpyxl
+- **Pipeline version**: 2.0 (GPT-assisted, strict guardrails)
+- **Previous version**: 1.0 (`create_concordance.py`, naive substring matching)
+- **Python**: 3.10+
+- **Dependencies**: pandas, openpyxl; openai (optional)
 
-## Contact and Feedback
-
-This concordance is generated automatically. For questions or improvements, please review the code in `create_concordance.py` and adjust matching logic as needed.
