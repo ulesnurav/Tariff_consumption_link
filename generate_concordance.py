@@ -779,7 +779,7 @@ def classify_ucc(desc: str) -> str:
     ]):
         return "FINANCIAL"
 
-    # Housing
+    # Housing / rental
     if any(p in d for p in [
         "RENT, ", "MORTGAGE", "PROPERTY TAX", "GROUND RENT", "LODGING",
         "HOTEL LODGING", "PROPERTY MANAGEMENT", "HOMEOWNERS ASSOCIATION",
@@ -788,6 +788,12 @@ def classify_ucc(desc: str) -> str:
         return "HOUSING"
     if d.startswith("RENT ") or d == "RENT":
         return "HOUSING"
+
+    # Rental services (e.g. "CLOTHING RENTAL", "RENTAL OF FURNITURE")
+    if " RENTAL" in d or d.startswith("RENTAL ") or d.endswith(" RENTAL"):
+        # Exclude legitimate goods with "rental" in a different context
+        if not any(x in d for x in ["RENTAL CAR", "RENTAL VEHICLE"]):
+            return "SERVICE"
 
     # Utilities / communication services
     if any(p in d for p in [
@@ -805,6 +811,9 @@ def classify_ucc(desc: str) -> str:
         "AT VENDING MACHINE", "CATERED AFFAIR", "FOOD OR BOARD AT SCHOOL",
         "FOOD ON OUT-OF-TOWN TRIP", "FOOD PREPARED BY CONSUMER UNIT ON OUT-OF-TOWN",
         "AT VENDING MACHINES AND MOBILE",
+        "AT EMPLOYER",          # cafeteria at employer
+        "SCHOOL CAFETERIA",     # school cafeteria food
+        "AT EMPLOYER AND SCHOOL",
     ]):
         return "PREPARED_FOOD"
 
@@ -835,9 +844,12 @@ def classify_ucc(desc: str) -> str:
         # Only flag if "SERVICE" is a standalone concept
         service_pattern = r"\bSERVICE[S]?\b"
         if re.search(service_pattern, d):
-            # But allow: FULL SERVICE (restaurant was caught above), REPAIR PARTS, etc.
-            # Check if it's a repair/professional service type
-            if any(x in d for x in ["REPAIR", "PROFESSIONAL", "CONTRACT", "SUBSCRIPTION"]):
+            # Descriptions ending in SERVICE or containing service-related terms
+            if (d.endswith("SERVICE") or d.endswith("SERVICES") or
+                    any(x in d for x in [
+                        "REPAIR", "PROFESSIONAL", "CONTRACT", "SUBSCRIPTION",
+                        "SATELLITE RADIO", "STREAMING", "ONLINE", "CELLULAR",
+                    ])):
                 return "SERVICE"
 
     return "GOODS"

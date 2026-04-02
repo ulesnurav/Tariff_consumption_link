@@ -4,7 +4,7 @@ HS10-to-UCC CONCORDANCE MAPPING SUMMARY
 PIPELINE
 --------------------
 Matching method:             Deterministic fallback (Stage A+C; GPT unavailable)
-Generated:                   2026-04-02 16:56 UTC
+Generated:                   2026-04-02 17:00 UTC
 
 INPUT DATA
 --------------------
@@ -13,28 +13,28 @@ Total UCC codes:             681
 
 MATCHING RESULTS
 --------------------
-HS10 codes matched:          5,319 (22%)
-HS10 codes unmatched:        18,153 (77%)
+HS10 codes matched:          5,315 (22%)
+HS10 codes unmatched:        18,157 (77%)
 
-UCC codes matched:           291 (42%)
-UCC codes unmatched:         390 (57%)
+UCC codes matched:           282 (41%)
+UCC codes unmatched:         399 (58%)
 
-Total HS10-UCC pairs:        9,830
+Total HS10-UCC pairs:        9,609
 
 CONFIDENCE LEVEL DISTRIBUTION
 --------------------
 HIGH                         2,925 pairs
-MEDIUM-HIGH                  2,436 pairs
-MEDIUM                       4,469 pairs
+MEDIUM-HIGH                  2,434 pairs
+MEDIUM                       4,250 pairs
 LOW                          0 pairs
 
 UNMATCHED UCC CODES BY CATEGORY
 --------------------
 FINANCIAL                                23 codes
 HOUSING                                  11 codes
-OTHER - No matching HS10 goods category  299 codes
-PREPARED_FOOD                            28 codes
-SERVICE                                  14 codes
+OTHER - No matching HS10 goods category  252 codes
+PREPARED_FOOD                            34 codes
+SERVICE                                  64 codes
 TRANSPORT_SERVICE                        4 codes
 UTILITY                                  11 codes
 
