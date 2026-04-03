@@ -66,6 +66,7 @@ HS10_FILE = "hs10_desc.xlsx"
 UCC_FILE = "ucc_codes_2017_2019_merged.csv"
 
 CONCORDANCE_FILE = "hs10_to_ucc_concordance.csv"
+HS6_CONCORDANCE_FILE = "hs6_to_ucc_concordance.csv"
 UNMATCHED_HS10_FILE = "unmatched_hs10_codes.csv"
 UNMATCHED_UCC_FILE = "unmatched_ucc_codes.csv"
 SUMMARY_FILE = "concordance_summary.txt"
@@ -85,6 +86,7 @@ GENERIC_TOKENS: Set[str] = {
     "MIXED", "PREPARED", "REFINED", "CONCENTRATED", "PURIFIED", "DEHYDRATED",
     "CANNED", "PRESERVED", "PACKAGED", "BOTTLED", "CURED", "BONELESS",
     "SHELLED", "HUSKED", "PEELED", "PITTED", "SEEDED", "UNRIPE", "RIPENED",
+    "CARCASS", "CARCASSES",  # animal form descriptor; species identified by other tokens
     # Qualifier adjectives
     "OTHER", "SPECIFIED", "UNSPECIFIED", "MISC", "NEC", "NESOI",
     "MISCELLANEOUS", "GENERAL", "SPECIAL", "VARIOUS", "SIMILAR", "SAME",
@@ -106,6 +108,15 @@ GENERIC_TOKENS: Set[str] = {
     "PARTS", "PART", "PREPARATIONS", "PREPARATION",
     "PIECES", "PIECE", "UNITS", "UNIT",
     "WATER",   # "cold-water shrimps" should NOT match "bottled water"
+    # Descriptor words that appear in both manufacturing processes and product names
+    # e.g., "HAND-knotted" carpets vs "HAND TOOLS"; "PORTABLE heating" vs "PORTABLE equip"
+    "HAND",    # hand-knotted/made (process) must NOT match "HAND TOOLS"
+    # Demographic qualifiers — these are apparel category qualifiers, NOT product
+    # nouns, so they must not be the sole basis for a match.
+    # "MEN'S TROUSERS" and "MEN'S UNDERWEAR" share only MEN — that's not enough.
+    "MEN", "WOMEN", "BOYS", "GIRLS", "BOY", "GIRL", "MAN", "WOMAN",
+    "MENS", "WOMENS", "MENS", "ADULT", "ADULTS", "CHILD", "CHILDREN",
+    "INFANT", "INFANTS", "TODDLER", "TODDLERS", "YOUTH",
     # Single characters / very short words
     "N", "E", "S", "O",
 }
@@ -166,20 +177,60 @@ UCC_NONGOOD_PHRASES: List[str] = [
 HS_TO_UCC_SYNONYMS: Dict[str, List[str]] = {
     # ── Meat ─────────────────────────────────────────────────────────────────
     "BOVINE": ["BEEF"],
+    "BOVINES": ["BEEF"],  # plural form in HTS descriptions
     "CATTLE": ["BEEF"],
     "SWINE": ["PORK"],
+    "SWINES": ["PORK"],
     "PORCINE": ["PORK"],
+    "PORCINES": ["PORK"],
     "POULTRY": ["CHICKEN", "TURKEY"],
     "OVINE": ["LAMB", "MUTTON"],
+    "OVINES": ["LAMB", "MUTTON"],
     "CAPRINE": ["GOAT"],
+    "CAPRINES": ["GOAT"],
     "EQUINE": ["HORSE"],
+    "EQUINES": ["HORSE"],
+    "SHEEP": ["LAMB", "MUTTON"],   # "sheep" is the common HTS term for ovine
+    "GOAT": ["GOAT", "MUTTON"],
+    "TURKEY": ["TURKEY", "POULTRY"],
+    "TURKEYS": ["TURKEY", "POULTRY"],
+    "CHICKEN": ["CHICKEN"],
+    "CHICKENS": ["CHICKEN"],
+    "PIGS": ["PORK"],
+    "PIG": ["PORK"],
+    "HOG": ["PORK"],
+    "HOGS": ["PORK"],
     "OFFAL": ["ORGAN", "VARIETY MEATS"],
     "SWEETBREAD": ["SWEETBREAD"],  # NOT 'BREAD' — specific term
     "SWEATBREAD": ["SWEETBREAD"],
+    # Additional meat synonyms for improved coverage
+    "BUFFALO": ["BEEF"],
+    "BISON": ["BEEF"],
+    "VEAL": ["BEEF"],
+    "CALF": ["BEEF"],
+    "STEER": ["BEEF"],
+    "HEIFER": ["BEEF"],
+    "BULL": ["BEEF"],
+    "VENISON": ["BEEF"],
+    "GAME": ["BEEF"],
+    "RABBIT": ["POULTRY"],
+    "DUCK": ["POULTRY"],
+    "GOOSE": ["POULTRY"],
+    "MUTTON": ["LAMB"],
+    "LAMB": ["LAMB"],
+    # Note: CARCASS/CARCASSES intentionally NOT mapped to a species — species is
+    # identified separately via BOVINE, SHEEP, LAMB, SWINE tokens in the same desc.
+    "LARD": ["FATS AND OILS"],
+    "TALLOW": ["FATS AND OILS"],
+    "SUET": ["FATS AND OILS"],
+    "BACON": ["BACON"],
+    "HAM": ["HAM"],
 
     # ── Seafood ───────────────────────────────────────────────────────────────
     "CRUSTACEAN": ["SHRIMP", "CRAB", "LOBSTER", "SEAFOOD"],
+    "CRUSTACEANS": ["SHRIMP", "CRAB", "LOBSTER", "SEAFOOD"],
     "MOLLUSK": ["OYSTER", "CLAM", "SCALLOP", "SEAFOOD"],
+    "MOLLUSKS": ["OYSTER", "CLAM", "SCALLOP", "SEAFOOD"],
     "SHELLFISH": ["SEAFOOD", "SHRIMP", "CRAB", "OYSTER"],
     "FINFISH": ["FISH"],
     "TUNA": ["TUNA", "FISH"],
@@ -187,11 +238,17 @@ HS_TO_UCC_SYNONYMS: Dict[str, List[str]] = {
     "COD": ["FISH"],
     "TILAPIA": ["FISH"],
     "SHRIMP": ["SHRIMP", "SEAFOOD"],
+    "SHRIMPS": ["SHRIMP", "SEAFOOD"],
     "LOBSTER": ["LOBSTER", "SEAFOOD"],
+    "LOBSTERS": ["LOBSTER", "SEAFOOD"],
     "CRAB": ["CRAB", "SEAFOOD"],
+    "CRABS": ["CRAB", "SEAFOOD"],
     "OYSTER": ["OYSTER", "SEAFOOD"],
+    "OYSTERS": ["OYSTER", "SEAFOOD"],
     "CLAM": ["CLAM", "SEAFOOD"],
+    "CLAMS": ["CLAM", "SEAFOOD"],
     "SCALLOP": ["SCALLOP", "SEAFOOD"],
+    "SCALLOPS": ["SCALLOP", "SEAFOOD"],
     "HERRING": ["FISH"],
     "MACKEREL": ["FISH"],
     "HALIBUT": ["FISH"],
@@ -207,6 +264,25 @@ HS_TO_UCC_SYNONYMS: Dict[str, List[str]] = {
     "POLLOCK": ["FISH"],
     "HADDOCK": ["FISH"],
     "SNAPPER": ["FISH"],
+    # Additional seafood synonyms
+    "TILAPIA": ["FISH"],
+    "SWORDFISH": ["FISH"],
+    "MAHI": ["FISH"],
+    "GROUPER": ["FISH"],
+    "PERCH": ["FISH"],
+    "PIKE": ["FISH"],
+    "CARP": ["FISH"],
+    "EEL": ["FISH"],
+    "SHARK": ["FISH"],
+    "WHELK": ["SEAFOOD"],
+    "PERIWINKLE": ["SEAFOOD"],
+    "ABALONE": ["SEAFOOD"],
+    "CONCH": ["SEAFOOD"],
+    "SEA URCHIN": ["SEAFOOD"],
+    "GEODUCK": ["SEAFOOD"],
+    "SURIMI": ["FISH", "SEAFOOD"],
+    "FISH FILLET": ["FISH"],
+    "FISHMEAL": ["FISH"],
 
     # ── Dairy / Eggs ──────────────────────────────────────────────────────────
     "LACTOSE": ["DAIRY", "MILK"],
@@ -238,6 +314,62 @@ HS_TO_UCC_SYNONYMS: Dict[str, List[str]] = {
     "ALLIUM": ["ONIONS"],
     "CAPSICUM": ["PEPPERS"],
     "CUCUMBERS": ["CUCUMBER"],
+    # Additional produce synonyms
+    "YAM": ["POTATOES"],
+    "SWEET POTATO": ["POTATOES"],
+    "CASSAVA": ["POTATOES"],
+    "ASPARAGUS": ["VEGETABLES"],
+    "ARTICHOKE": ["VEGETABLES"],
+    "ZUCCHINI": ["VEGETABLES"],
+    "SQUASH": ["VEGETABLES"],
+    "PUMPKIN": ["VEGETABLES"],
+    "EGGPLANT": ["VEGETABLES"],
+    "CELERY": ["VEGETABLES"],
+    "RADISH": ["VEGETABLES"],
+    "TURNIP": ["VEGETABLES"],
+    "PARSNIP": ["VEGETABLES"],
+    "LEEK": ["ONIONS", "VEGETABLES"],
+    "SHALLOT": ["ONIONS", "VEGETABLES"],
+    "CHIVE": ["VEGETABLES"],
+    "KALE": ["LEAFY VEGETABLES", "VEGETABLES"],
+    "CHARD": ["LEAFY VEGETABLES", "VEGETABLES"],
+    "ARUGULA": ["LEAFY VEGETABLES", "VEGETABLES"],
+    "ENDIVE": ["LETTUCE", "VEGETABLES"],
+    "WATERCRESS": ["LEAFY VEGETABLES", "VEGETABLES"],
+    "BEAN": ["BEANS", "VEGETABLES"],
+    "PEAS": ["PEAS", "VEGETABLES"],
+    "LENTIL": ["BEANS", "VEGETABLES"],
+    "CHICKPEA": ["BEANS", "VEGETABLES"],
+    "BLACKBERRY": ["BERRIES"],
+    "BLUEBERRY": ["BERRIES"],
+    "RASPBERRY": ["BERRIES"],
+    "CRANBERRY": ["BERRIES"],
+    "CURRANT": ["BERRIES"],
+    "GOOSEBERRY": ["BERRIES"],
+    "FIG": ["FRUITS"],
+    "DATE": ["FRUITS"],
+    "POMEGRANATE": ["FRUITS"],
+    "KIWI": ["FRUITS"],
+    "GUAVA": ["FRUITS"],
+    "PAPAYA": ["FRUITS"],
+    "PERSIMMON": ["FRUITS"],
+    "APRICOT": ["FRUITS"],
+    "NECTARINE": ["FRUITS"],
+    "TANGERINE": ["CITRUS FRUITS"],
+    "MANDARIN": ["CITRUS FRUITS"],
+    "CLEMENTINE": ["CITRUS FRUITS"],
+    "KUMQUAT": ["CITRUS FRUITS"],
+    "MACADAMIA": ["NUTS"],
+    "PECAN": ["NUTS"],
+    "CHESTNUT": ["NUTS"],
+    "HAZELNUT": ["NUTS"],
+    "FILBERT": ["NUTS"],
+    "PINE NUT": ["NUTS"],
+    "SESAME": ["FATS AND OILS", "SEASONINGS"],
+    "FLAXSEED": ["FATS AND OILS"],
+    "SUNFLOWER": ["FATS AND OILS"],
+    "SAFFLOWER": ["FATS AND OILS"],
+    "MUSTARD SEED": ["SPICES", "FATS AND OILS"],
     "APPLE": ["APPLES"],
     "APPLES": ["APPLES"],
     "BANANA": ["BANANAS"],
@@ -349,8 +481,25 @@ HS_TO_UCC_SYNONYMS: Dict[str, List[str]] = {
     "MAYONNAISE": ["SALAD DRESSINGS"],
     "SALAD DRESSING": ["SALAD DRESSINGS"],
     "DRESSING": ["SALAD DRESSINGS"],
+    # Additional fats/oils synonyms
+    "OIL": ["FATS AND OILS"],
+    "PALM OIL": ["FATS AND OILS"],
+    "COCONUT OIL": ["FATS AND OILS"],
+    "CORN OIL": ["FATS AND OILS"],
+    "PEANUT OIL": ["FATS AND OILS"],
+    "SUNFLOWER OIL": ["FATS AND OILS"],
+    "RAPESEED": ["FATS AND OILS"],
+    "COTTONSEED": ["FATS AND OILS"],
+    "HYDROGENATED": ["FATS AND OILS"],
+    "FAT": ["FATS AND OILS"],
+    "FATS": ["FATS AND OILS"],
 
     # ── Prepared / Processed Food ─────────────────────────────────────────────
+    # Plural/singular normalisation for meat terms (critical for score calculation)
+    "MEAT": ["MEAT", "MEATS"],
+    "MEATS": ["MEAT", "MEATS"],
+    "ORGAN MEAT": ["ORGAN MEATS"],
+    "ORGAN MEATS": ["ORGAN MEAT"],
     "FRANKFURTER": ["FRANKFURTERS"],
     "HOT DOG": ["FRANKFURTERS"],
     "BOLOGNA": ["BOLOGNA"],
@@ -614,28 +763,14 @@ _ACCESSORY_UCC = {  # Watches, jewelry
 
 HS_CHAPTER_UCC_ALLOWED: Dict[str, Set[str]] = {}
 
-# ── Food / agricultural chapters (01–24) → FOOD UCC only ─────────────────────
+# ── Food / agricultural chapters (01–24) → any food UCC prefix ───────────────
+# All food chapters are allowed to match any food/beverage UCC. The anchor-noun
+# scoring and anti-trap filters provide quality gating within this range.
+# Narrow per-chapter overrides are intentionally removed to improve coverage.
 for _ch in range(1, 25):
     HS_CHAPTER_UCC_ALLOWED[str(_ch).zfill(2)] = _FOOD_UCC
 
-# Overrides for specific food chapters with narrower UCC ranges:
-HS_CHAPTER_UCC_ALLOWED["02"] = {"03", "04", "05", "06", "07"}        # Meat cuts
-HS_CHAPTER_UCC_ALLOWED["03"] = {"05", "06", "07"}                     # Fish/seafood
-HS_CHAPTER_UCC_ALLOWED["04"] = {"08", "09", "10"}                     # Dairy/eggs
-HS_CHAPTER_UCC_ALLOWED["07"] = {"11", "12", "13", "14", "18"}         # Vegetables
-HS_CHAPTER_UCC_ALLOWED["08"] = {"11", "12", "13", "14", "15", "18"}   # Fruits/nuts
-HS_CHAPTER_UCC_ALLOWED["09"] = {"17", "18"}                           # Coffee/tea/spices
-HS_CHAPTER_UCC_ALLOWED["10"] = {"01", "02", "18"}                     # Cereals
-HS_CHAPTER_UCC_ALLOWED["11"] = {"01", "02", "18"}                     # Milling
-HS_CHAPTER_UCC_ALLOWED["12"] = {"16", "18"}                           # Oil seeds → fats/oils
-HS_CHAPTER_UCC_ALLOWED["15"] = {"16", "18"}                           # Fats/oils
-HS_CHAPTER_UCC_ALLOWED["16"] = {"03", "04", "05", "06", "07", "18"}   # Prepared meat/fish
-HS_CHAPTER_UCC_ALLOWED["17"] = {"15", "18"}                           # Sugar/confectionery
-HS_CHAPTER_UCC_ALLOWED["18"] = {"15", "18"}                           # Cocoa/chocolate
-HS_CHAPTER_UCC_ALLOWED["19"] = {"01", "02", "18"}                     # Bakery/pasta
-HS_CHAPTER_UCC_ALLOWED["20"] = {"11", "12", "13", "14", "18"}         # Canned veg/fruit
-HS_CHAPTER_UCC_ALLOWED["21"] = {"17", "18"}                           # Misc food prep
-HS_CHAPTER_UCC_ALLOWED["22"] = {"17", "20"}                           # Beverages
+# Only retain non-food chapter overrides for chapter 24 (tobacco)
 HS_CHAPTER_UCC_ALLOWED["24"] = {"63"}                                 # Tobacco
 
 # ── Chemicals / materials / fuels (25–40) → mostly no restriction ─────────────
@@ -902,18 +1037,38 @@ def score_candidate(
     hs10_covered = hs10_anchor_set & ucc_expanded
     hs10_coverage = len(hs10_covered) / len(hs10_anchor_set)
 
-    # ── Chapter compatibility: HARD REJECT for clear domain mismatches ────────
+    # ── Chapter compatibility: SOFT PENALTY for domain mismatches ────────────
+    # Instead of hard-rejecting, apply a score penalty for chapter-incompatible
+    # pairs. This preserves many-to-many coverage while still downweighting
+    # cross-domain noise. Very strong semantic matches can still pass even
+    # across chapter boundaries.
     chapter_allowed = HS_CHAPTER_UCC_ALLOWED.get(hs_chapter, set())
+    chapter_penalty = 1.0
+    chapter_note = ""
     if chapter_allowed and ucc_prefix not in chapter_allowed:
-        return 0.0, (
-            f"REJECT: HS chapter {hs_chapter} incompatible with UCC prefix {ucc_prefix} "
-            f"(allowed: {sorted(chapter_allowed)[:5]}...)"
+        chapter_penalty = 0.45  # 55% reduction — most will fall below min_score
+        chapter_note = (
+            f"; chapter-domain mismatch (ch {hs_chapter} vs UCC prefix {ucc_prefix})"
         )
 
     # ── Compute combined score ─────────────────────────────────────────────────
     # 65% weight on UCC coverage (most important: does the UCC fit the HS10?)
     # 35% weight on HS10 coverage (secondary: does the HS10 relate to the UCC?)
     raw_score = 0.65 * ucc_coverage + 0.35 * hs10_coverage
+
+    # Bonus for anchor-noun synonym match: an HS10 anchor expands directly to a
+    # UCC anchor (e.g., SHEEP→LAMB where LAMB is a UCC anchor). This is the
+    # strongest quality signal — a specific product noun synonymy.
+    synonym_match_note = ""
+    for hs_tok in hs10_anchors:
+        hs_syn_expansions: Set[str] = set()
+        for syn_phrase in HS_TO_UCC_SYNONYMS.get(hs_tok, []):
+            hs_syn_expansions.update(tokenize(syn_phrase))
+        if hs_syn_expansions & ucc_anchor_set:
+            raw_score = min(raw_score + 0.15, 1.0)
+            matched_syns = hs_syn_expansions & ucc_anchor_set
+            synonym_match_note = f"synonym anchor match: {hs_tok}→{', '.join(sorted(matched_syns))}"
+            break  # Count the bonus only once per pair
 
     # Bonus for exact non-generic bigram match in original tokens
     hs_bigrams = _bigrams(hs10_tokens)
@@ -925,16 +1080,21 @@ def score_candidate(
     if non_generic_bigrams:
         raw_score = min(raw_score + 0.10 * len(non_generic_bigrams), 1.0)
 
-    score = max(min(raw_score, 1.0), 0.0)
+    # Apply chapter-domain penalty (after bonuses, so synonym/bigram bonus can partially offset)
+    score = max(min(raw_score * chapter_penalty, 1.0), 0.0)
 
     # Build human-readable reason
     reason_parts = []
     if ucc_covered:
         reason_parts.append(f"anchor tokens: {', '.join(sorted(ucc_covered))}")
+    if synonym_match_note:
+        reason_parts.append(synonym_match_note)
     if hs10_covered and hs10_covered != ucc_covered:
         reason_parts.append(f"HS10 tokens matched: {', '.join(sorted(hs10_covered))}")
     if non_generic_bigrams:
         reason_parts.append(f"bigram matches: {', '.join(' '.join(bg) for bg in non_generic_bigrams)}")
+    if chapter_note:
+        reason_parts.append(chapter_note.lstrip("; "))
 
     return score, "; ".join(reason_parts) if reason_parts else "token overlap"
 
@@ -950,7 +1110,8 @@ def confidence_label(score: float) -> str:
     With coverage-based scoring:
     - HIGH (≥0.70): both UCC and HS10 well-covered, or perfect UCC coverage
     - MEDIUM-HIGH (≥0.55): good UCC coverage, some HS10 coverage
-    - MEDIUM (≥0.40): partial UCC coverage, minimum threshold
+    - MEDIUM (≥0.40): solid partial coverage
+    - MEDIUM-LOW (≥0.35): borderline but acceptable coverage; use with caution
     - LOW: below acceptance threshold (should not appear in accepted output)
     """
     if score >= 0.70:
@@ -959,6 +1120,8 @@ def confidence_label(score: float) -> str:
         return "MEDIUM-HIGH"
     if score >= 0.40:
         return "MEDIUM"
+    if score >= 0.35:
+        return "MEDIUM-LOW"
     return "LOW"
 
 
@@ -1063,8 +1226,8 @@ def gpt_judge_batch(
 def build_concordance(
     hs10_df: pd.DataFrame,
     ucc_df: pd.DataFrame,
-    min_score: float = 0.40,
-    max_candidates: int = 10,
+    min_score: float = 0.35,
+    max_candidates: int = 20,
 ) -> Tuple[List[Dict], List[Dict], List[Dict], List[Dict]]:
     """
     Build the concordance.
@@ -1283,8 +1446,8 @@ def _process_hs10_deterministic(
     hs_desc = hs_row["_desc_norm"]
     hs_desc_orig = hs_row.get("HS10 Description", hs_desc)
 
-    accepted_any = False
     decision_candidates = []
+    accepted_cands = []
 
     for cand in candidate_dicts:
         score = cand["det_score"]
@@ -1302,6 +1465,17 @@ def _process_hs10_deterministic(
         })
 
         if accept:
+            accepted_cands.append((score, cand, conf))
+
+    if accepted_cands:
+        # Normalise match scores within this HS10 to produce map_weight
+        total_score = sum(s for s, _, _ in accepted_cands)
+        for score, cand, conf in accepted_cands:
+            map_weight = (
+                round(score / total_score, 4)
+                if total_score > 0
+                else round(1.0 / len(accepted_cands), 4)
+            )
             matches.append({
                 "hs10_code": hs_code,
                 "hs10_description": hs_desc_orig if hs_desc_orig != hs_desc else hs_desc,
@@ -1309,14 +1483,13 @@ def _process_hs10_deterministic(
                 "ucc_description": cand["ucc_description"],
                 "confidence_level": conf,
                 "match_score": round(score, 4),
+                "map_weight": map_weight,
                 "match_reasoning": cand["det_reason"],
                 "match_method": "deterministic",
                 "demographic_split": 1.0,
             })
             matched_ucc_codes.add(cand["ucc_code"])
-            accepted_any = True
-
-    if not accepted_any:
+    else:
         best = candidate_dicts[0] if candidate_dicts else {}
         unmatched_hs10.append({
             "hs10_code": hs_code,
@@ -1331,8 +1504,8 @@ def _process_hs10_deterministic(
         "hs10_code": hs_code,
         "hs10_description": hs_desc,
         "candidates": decision_candidates,
-        "accepted": accepted_any,
-        "rejection_reason": None if accepted_any else "score below threshold",
+        "accepted": bool(accepted_cands),
+        "rejection_reason": None if accepted_cands else "score below threshold",
     })
 
 
@@ -1353,7 +1526,7 @@ def _process_hs10_with_gpt_results(
     if judgment_list is None:
         # GPT failed — fall back to deterministic
         _process_hs10_deterministic(
-            hs_row, candidate_dicts, 0.40,
+            hs_row, candidate_dicts, 0.35,
             matches, unmatched_hs10, decisions, matched_ucc_codes,
         )
         return
@@ -1361,8 +1534,8 @@ def _process_hs10_with_gpt_results(
     # Build lookup from GPT results
     gpt_by_code: Dict[str, Dict] = {j["ucc_code"]: j for j in judgment_list if "ucc_code" in j}
 
-    accepted_any = False
     decision_candidates = []
+    accepted_gpt: List[Tuple[float, Dict, str, str]] = []  # (det_score, cand, conf_label, reason)
 
     for cand in candidate_dicts:
         gpt = gpt_by_code.get(cand["ucc_code"], {})
@@ -1394,7 +1567,17 @@ def _process_hs10_with_gpt_results(
             conf_label = {
                 "high": "HIGH", "medium": "MEDIUM-HIGH", "low": "MEDIUM"
             }.get(gpt_conf.lower(), "MEDIUM")
+            accepted_gpt.append((det_score, cand, conf_label, reason))
 
+    if accepted_gpt:
+        # Normalise det_scores within this HS10 to produce map_weight
+        total_score = sum(s for s, _, _, _ in accepted_gpt)
+        for det_score, cand, conf_label, reason in accepted_gpt:
+            map_weight = (
+                round(det_score / total_score, 4)
+                if total_score > 0
+                else round(1.0 / len(accepted_gpt), 4)
+            )
             matches.append({
                 "hs10_code": hs_code,
                 "hs10_description": hs_desc_orig if hs_desc_orig != hs_desc else hs_desc,
@@ -1402,14 +1585,13 @@ def _process_hs10_with_gpt_results(
                 "ucc_description": cand["ucc_description"],
                 "confidence_level": conf_label,
                 "match_score": round(det_score, 4),
+                "map_weight": map_weight,
                 "match_reasoning": reason,
                 "match_method": "gpt",
                 "demographic_split": 1.0,
             })
             matched_ucc_codes.add(cand["ucc_code"])
-            accepted_any = True
-
-    if not accepted_any:
+    else:
         unmatched_hs10.append({
             "hs10_code": hs_code,
             "hs10_description": hs_desc,
@@ -1420,8 +1602,8 @@ def _process_hs10_with_gpt_results(
         "hs10_code": hs_code,
         "hs10_description": hs_desc,
         "candidates": decision_candidates,
-        "accepted": accepted_any,
-        "rejection_reason": None if accepted_any else "GPT rejected all candidates",
+        "accepted": bool(accepted_gpt),
+        "rejection_reason": None if accepted_gpt else "GPT rejected all candidates",
     })
 
 
@@ -1454,10 +1636,6 @@ def flag_suspicious(matches: List[Dict]) -> List[Dict]:
             if re.search(pattern, combined, re.IGNORECASE):
                 suspicious.append({**m, "suspicious_reason": label})
                 break
-        else:
-            # Also flag if confidence is LOW
-            if m.get("confidence_level") == "LOW":
-                suspicious.append({**m, "suspicious_reason": "LOW confidence — review recommended"})
     return suspicious
 
 
@@ -1472,6 +1650,7 @@ def generate_summary(
     unmatched_hs10: List[Dict],
     unmatched_ucc: List[Dict],
     gpt_used: bool,
+    hs6_df: Optional[pd.DataFrame] = None,
 ) -> str:
     total_hs10 = len(hs10_df)
     total_ucc = len(ucc_df)
@@ -1480,6 +1659,11 @@ def generate_summary(
     n_unmatched_hs10 = len(unmatched_hs10)
     n_matched_ucc = len({m["ucc_code"] for m in matches})
     n_unmatched_ucc = len(unmatched_ucc)
+
+    # HS6 coverage (derive from hs10_code prefix)
+    matched_hs6 = {m["hs10_code"][:6] for m in matches}
+    total_hs6 = len(hs6_df) if hs6_df is not None else None
+    n_matched_hs6 = len(matched_hs6)
 
     conf_counts: Dict[str, int] = defaultdict(int)
     for m in matches:
@@ -1512,11 +1696,31 @@ def generate_summary(
         f"UCC codes unmatched:         {n_unmatched_ucc:,} ({n_unmatched_ucc*100//total_ucc}%)",
         "",
         f"Total HS10-UCC pairs:        {n_pairs:,}",
+    ]
+
+    # HS6 coverage section
+    if total_hs6 is not None:
+        hs6_pct = n_matched_hs6 * 100 // total_hs6 if total_hs6 else 0
+        lines += [
+            "",
+            "HS6 COVERAGE (for Stata 1:m merge on hs6_code)",
+            "-" * 20,
+            f"HS6 codes with ≥1 match:     {n_matched_hs6:,} ({hs6_pct}%)",
+            f"Total HS6 codes:             {total_hs6:,}",
+            f"HS6 concordance file:        {HS6_CONCORDANCE_FILE}",
+        ]
+    else:
+        lines += [
+            "",
+            f"HS6 codes covered:           {n_matched_hs6:,} (from HS10 prefix)",
+        ]
+
+    lines += [
         "",
         "CONFIDENCE LEVEL DISTRIBUTION",
         "-" * 20,
     ]
-    for level in ["HIGH", "MEDIUM-HIGH", "MEDIUM", "LOW"]:
+    for level in ["HIGH", "MEDIUM-HIGH", "MEDIUM", "MEDIUM-LOW", "LOW"]:
         lines.append(f"{level:<20}         {conf_counts[level]:,} pairs")
 
     lines += [
@@ -1547,15 +1751,62 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--input-hs10", default=HS10_FILE, help="HS10 input Excel file")
     p.add_argument("--input-ucc", default=UCC_FILE, help="UCC input CSV file")
+    p.add_argument("--input-hs6", default="hs6_2017.csv",
+                   help="HS6 reference CSV for coverage statistics (default: hs6_2017.csv)")
     p.add_argument(
-        "--min-score", type=float, default=0.40,
-        help="Minimum deterministic score for acceptance (default: 0.40)",
+        "--min-score", type=float, default=0.35,
+        help="Minimum deterministic score for acceptance (default: 0.35)",
     )
     p.add_argument(
-        "--max-candidates", type=int, default=10,
-        help="Max UCC candidates per HS10 to score (default: 10)",
+        "--max-candidates", type=int, default=20,
+        help="Max UCC candidates per HS10 to score (default: 20)",
     )
     return p.parse_args()
+
+
+def _build_hs6_concordance(concordance_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregate the HS10-level concordance to HS6 level for Stata 1:m merge.
+
+    For each (hs6_code, ucc_code) pair:
+      - map_weight is the mean of hs10-level map_weights across all HS10 codes
+        under this HS6 that link to this UCC, then re-normalised within hs6_code
+        so that weights sum to 1 per HS6 code.
+      - confidence_level is the most common value across the contributing HS10 rows.
+
+    This preserves many-to-many HS6↔UCC relationships.
+    """
+    if concordance_df.empty:
+        return pd.DataFrame(columns=["hs6_code", "ucc_code", "ucc_description",
+                                     "map_weight", "confidence_level"])
+
+    df = concordance_df.copy()
+    df["hs6_code"] = df["hs10_code"].str[:6]
+
+    # Aggregate
+    def _mode(s: pd.Series) -> str:
+        counts = s.value_counts()
+        return counts.index[0] if len(counts) > 0 else "MEDIUM"
+
+    hs6_conc = (
+        df.groupby(["hs6_code", "ucc_code", "ucc_description"], sort=False)
+        .agg(
+            map_weight=("map_weight", "mean"),
+            confidence_level=("confidence_level", _mode),
+        )
+        .reset_index()
+    )
+
+    # Re-normalise map_weight within each hs6_code
+    group_sums = hs6_conc.groupby("hs6_code")["map_weight"].transform("sum")
+    hs6_conc["map_weight"] = (hs6_conc["map_weight"] / group_sums).round(4)
+
+    # Sort for readability
+    hs6_conc = hs6_conc.sort_values(
+        ["hs6_code", "map_weight"], ascending=[True, False]
+    ).reset_index(drop=True)
+
+    return hs6_conc
 
 
 def main() -> None:
@@ -1575,6 +1826,17 @@ def main() -> None:
     ucc_df = pd.read_csv(args.input_ucc, dtype=str)
     print(f"  Loaded {len(hs10_df):,} HS10 codes from {args.input_hs10}")
     print(f"  Loaded {len(ucc_df):,} UCC codes from {args.input_ucc}")
+
+    # Load optional HS6 reference for coverage stats
+    hs6_ref_df: Optional[pd.DataFrame] = None
+    try:
+        hs6_ref_df = pd.read_csv(args.input_hs6, dtype=str)
+        # Keep only basic-level (6-digit) codes
+        if "IsBasicLevel" in hs6_ref_df.columns:
+            hs6_ref_df = hs6_ref_df[hs6_ref_df["IsBasicLevel"] == "1"]
+        print(f"  Loaded {len(hs6_ref_df):,} HS6 codes from {args.input_hs6}")
+    except FileNotFoundError:
+        print(f"  HS6 reference file {args.input_hs6} not found; HS6 coverage stats will be approximate.")
     print()
 
     # ── Build concordance ─────────────────────────────────────────────────────
@@ -1603,6 +1865,22 @@ def main() -> None:
     concordance_df.to_csv(CONCORDANCE_FILE, index=False)
     print(f"  Saved {CONCORDANCE_FILE} ({len(matches):,} rows)")
 
+    # ── Generate HS6 concordance ──────────────────────────────────────────────
+    print("Step 4b: Building HS6 concordance for Stata pipeline...")
+    hs6_concordance_df = _build_hs6_concordance(concordance_df)
+    hs6_concordance_df.to_csv(HS6_CONCORDANCE_FILE, index=False)
+    n_hs6_pairs = len(hs6_concordance_df)
+    n_hs6_matched = hs6_concordance_df["hs6_code"].nunique()
+    total_hs6 = len(hs6_ref_df) if hs6_ref_df is not None else "?"
+    hs6_pct = (
+        f"{n_hs6_matched * 100 // len(hs6_ref_df)}%"
+        if hs6_ref_df is not None
+        else "?"
+    )
+    print(f"  Saved {HS6_CONCORDANCE_FILE} ({n_hs6_pairs:,} rows)")
+    print(f"  HS6 codes covered: {n_hs6_matched:,} / {total_hs6} ({hs6_pct})")
+    print()
+
     unmatched_hs10_df = pd.DataFrame(unmatched_hs10)
     unmatched_hs10_df.to_csv(UNMATCHED_HS10_FILE, index=False)
     print(f"  Saved {UNMATCHED_HS10_FILE} ({len(unmatched_hs10):,} rows)")
@@ -1611,7 +1889,10 @@ def main() -> None:
     unmatched_ucc_df.to_csv(UNMATCHED_UCC_FILE, index=False)
     print(f"  Saved {UNMATCHED_UCC_FILE} ({len(unmatched_ucc):,} rows)")
 
-    summary = generate_summary(hs10_df, ucc_df, matches, unmatched_hs10, unmatched_ucc, GPT_AVAILABLE)
+    summary = generate_summary(
+        hs10_df, ucc_df, matches, unmatched_hs10, unmatched_ucc,
+        GPT_AVAILABLE, hs6_df=hs6_ref_df,
+    )
     with open(SUMMARY_FILE, "w") as f:
         f.write(summary)
     print(f"  Saved {SUMMARY_FILE}")
